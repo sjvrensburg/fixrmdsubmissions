@@ -3,3 +3,6 @@
 export(fix_folder)
 export(fix_rmd)
 export(knit_fixed_files)
+import(here)
+import(pander)
+import(rmarkdown)

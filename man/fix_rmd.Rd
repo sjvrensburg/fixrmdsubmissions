@@ -25,7 +25,7 @@ If NULL (default), appends "_FIXED" before the .Rmd extension.}
 \item{backup}{Logical. If TRUE (default), creates a backup file with .bak extension.}
 
 \item{fix_paths}{Logical. If TRUE (default), wraps bare filenames in import
-functions with \code{here::here()}. Requires the 'here' package.}
+functions with \code{here::here()}. The 'here' package is required.}
 
 \item{data_folder}{Character string. Subfolder name for data files when using
 \code{fix_paths = TRUE}. Default is "data".}
@@ -34,12 +34,12 @@ functions with \code{here::here()}. Requires the 'here' package.}
 identifier) as a numbered heading at the beginning of the document. Useful
 when students forget to include their name. Default is FALSE.}
 
-\item{limit_output}{Logical. If TRUE (default), limits console output to prevent
-massive data dumps (e.g., printing entire large datasets). Sets max.print and
-pander options to reasonable limits.}
+\item{limit_output}{Logical. If TRUE (default), injects global setup code to
+prevent massive data dumps by setting appropriate pander options and output limits.
+The setup code is added to existing setup chunks or creates a new setup chunk.}
 
-\item{max_print_lines}{Integer. Maximum number of lines to print when limit_output
-is TRUE. Default is 100.}
+\item{max_print_lines}{Integer. This parameter is deprecated and ignored.
+Output limiting is now handled through global setup code injection.}
 
 \item{quiet}{Logical. If TRUE, suppresses progress messages. Default is FALSE.}
 }

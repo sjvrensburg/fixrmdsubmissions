@@ -19,8 +19,8 @@ test_that("fix_rmd adds eval=FALSE to failing chunks", {
 
   writeLines(rmd_content, tmp)
 
-  # Fix the file
-  output <- fix_rmd(tmp, quiet = TRUE)
+  # Fix the file (disable limit_output to avoid injecting setup chunk)
+  output <- fix_rmd(tmp, limit_output = FALSE, quiet = TRUE)
 
   # Read the output
   result <- readLines(output)
@@ -52,7 +52,7 @@ test_that("fix_rmd preserves successful chunks", {
 
   writeLines(rmd_content, tmp)
 
-  output <- fix_rmd(tmp, quiet = TRUE)
+  output <- fix_rmd(tmp, limit_output = FALSE, quiet = TRUE)
   result <- readLines(output)
 
   # Chunk should not have eval=FALSE
@@ -103,7 +103,7 @@ test_that("fix_rmd handles chunks with existing eval=FALSE", {
 
   writeLines(rmd_content, tmp)
 
-  output <- fix_rmd(tmp, quiet = TRUE)
+  output <- fix_rmd(tmp, limit_output = FALSE, quiet = TRUE)
   result <- readLines(output)
 
   # Should preserve existing eval=FALSE

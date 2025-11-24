@@ -1,5 +1,5 @@
-# Path fixing utilities
-# Internal helper functions for intelligently fixing bare file paths
+# Path fixing and output management utilities
+# Internal helper functions for intelligently fixing bare file paths and managing output
 
 #' Fix bare file paths in a line of R code
 #'
@@ -155,27 +155,137 @@ build_here_call <- function(file_path, data_folder) {
 #' Check if 'here' package is available
 #'
 #' @description
-#' Checks if the 'here' package is installed and loads it if needed.
-#' Provides helpful error message if not available.
+#' Since 'here' is now a hard dependency, this function simply loads the package.
+#' The function is kept for backward compatibility.
 #'
 #' @return Logical indicating success
 #'
 #' @keywords internal
 #' @noRd
 ensure_here_available <- function() {
-  if (!requireNamespace("here", quietly = TRUE)) {
-    stop(
-      "The 'here' package is required for path fixing but is not installed.\n",
-      "Install it with: install.packages(\"here\")\n",
-      "Or disable path fixing with: fix_paths = FALSE",
-      call. = FALSE
-    )
-  }
-
-  # Load here package quietly
+  # Load here package quietly (now a hard dependency)
   suppressPackageStartupMessages(
     requireNamespace("here", quietly = TRUE)
   )
 
   return(TRUE)
+}
+
+#' Generate setup chunk code for output management
+#'
+#' @description
+#' Creates R code that sets up global options for limiting output
+#' and managing large data dumps. This code is injected into setup chunks
+#' or added as a new setup chunk if none exists.
+#'
+#' @return Character vector of R code lines for setup
+#'
+#' @keywords internal
+#' @noRd
+generate_setup_code <- function() {
+  setup_lines <- c(
+    "# Global options to prevent massive data dumps",
+    "# Added automatically by fixrmdsubmissions package",
+    "library(pander)",
+    "",
+    "# Limit console output to prevent massive data dumps",
+    "options(max.print = 1000)",
+    "",
+    "# Configure pander for reasonable table output",
+    "panderOptions('table.split.table', 80)",
+    "panderOptions('table.emphasize.rownames', FALSE)",
+    "panderOptions('table.split.cells', 30)",
+    "panderOptions('keep.line.breaks', TRUE)",
+    "",
+    "# Set reasonable line width",
+    "options(width = 80)"
+  )
+  
+  return(setup_lines)
+}
+
+#' Inject setup code into document
+#'
+#' @description
+#' Searches for existing setup chunks and appends global options code to them.
+#' If no setup chunk exists, creates one after the YAML header.
+#' Preserves existing setup chunk code while adding output management.
+#'
+#' @param lines Character vector of R Markdown file lines
+#' @return Modified character vector with setup code injected
+#'
+#' @keywords internal
+#' @noRd
+inject_setup_code <- function(lines) {
+  setup_code <- generate_setup_code()
+
+  # Look for existing setup chunks (setup, echo=FALSE, include=FALSE patterns)
+  setup_chunk_pattern <- "^\\s*```+\\s*\\{\\s*r[^}]*\\b(setup|echo\\s*=\\s*FALSE|include\\s*=\\s*FALSE)"
+  setup_chunks <- grep(setup_chunk_pattern, lines, ignore.case = TRUE)
+
+  if (length(setup_chunks) > 0) {
+    # Use first setup chunk found
+    setup_start <- setup_chunks[1]
+
+    # Find end of this chunk
+    setup_end <- setup_start
+    while (setup_end <= length(lines) && !grepl("^\\s*```+\\s*$", lines[setup_end])) {
+      setup_end <- setup_end + 1
+    }
+
+    if (setup_end > setup_start && setup_end <= length(lines)) {
+      # Check if our code is already there
+      existing_content <- paste(lines[(setup_start + 1):(setup_end - 1)], collapse = "\n")
+      if (!grepl("Added automatically by fixrmdsubmissions package", existing_content)) {
+        # Insert our setup code before the closing ```
+        before_chunk <- lines[1:(setup_end - 1)]
+        after_chunk <- lines[setup_end:length(lines)]
+
+        # Add setup code with blank lines
+        lines <- c(before_chunk, "", setup_code, "", after_chunk)
+      }
+    }
+  } else {
+    # No setup chunk found - create one after YAML header
+    # Find end of YAML header
+    yaml_end <- 0
+    in_yaml <- FALSE
+    yaml_count <- 0
+
+    for (i in seq_along(lines)) {
+      if (grepl("^---\\s*$", lines[i])) {
+        yaml_count <- yaml_count + 1
+        if (yaml_count == 1) {
+          in_yaml <- TRUE
+        } else if (yaml_count == 2) {
+          yaml_end <- i
+          break
+        }
+      }
+    }
+
+    # Insert setup chunk after YAML (or at beginning if no YAML)
+    insert_pos <- if (yaml_end > 0) yaml_end else 0
+
+    new_setup_chunk <- c(
+      "",
+      "```{r setup, include=FALSE}",
+      "knitr::opts_chunk$set(echo = TRUE)",
+      "",
+      setup_code,
+      "```",
+      ""
+    )
+
+    if (insert_pos > 0) {
+      before_yaml <- lines[1:insert_pos]
+      after_yaml <- lines[(insert_pos + 1):length(lines)]
+      lines <- c(before_yaml, new_setup_chunk, after_yaml)
+    } else {
+      # No YAML, insert at beginning
+      lines <- c(new_setup_chunk, lines)
+    }
+  }
+
+  return(lines)
 }

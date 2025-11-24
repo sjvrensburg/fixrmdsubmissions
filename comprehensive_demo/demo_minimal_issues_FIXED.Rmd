@@ -1,0 +1,22 @@
+---
+title: "Minimal Example File for Testing"
+author: "Simple Student"
+output: html_document
+---
+
+```{r}
+# This will work fine
+simple_data <- c(1, 2, 3, 4, 5)
+mean(simple_data)
+```
+
+```{r, eval = FALSE}
+# [fixrmdsubmissions] Chunk execution disabled due to error: could not find function "undefined_function"
+# This will fail with undefined function
+bad_code <- undefined_function()
+```
+
+```{r}
+# This should work fine
+plot(simple_data, main = "Simple Plot")
+```

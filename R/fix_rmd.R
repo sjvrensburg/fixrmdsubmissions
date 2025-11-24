@@ -18,17 +18,17 @@
 #'   If NULL (default), appends "_FIXED" before the .Rmd extension.
 #' @param backup Logical. If TRUE (default), creates a backup file with .bak extension.
 #' @param fix_paths Logical. If TRUE (default), wraps bare filenames in import
-#'   functions with `here::here()`. Requires the 'here' package.
+#'   functions with `here::here()`. The 'here' package is required.
 #' @param data_folder Character string. Subfolder name for data files when using
 #'   `fix_paths = TRUE`. Default is "data".
 #' @param add_student_info Logical. If TRUE, adds the parent folder name (student
 #'   identifier) as a numbered heading at the beginning of the document. Useful
 #'   when students forget to include their name. Default is FALSE.
-#' @param limit_output Logical. If TRUE (default), limits console output to prevent
-#'   massive data dumps (e.g., printing entire large datasets). Sets max.print and
-#'   pander options to reasonable limits.
-#' @param max_print_lines Integer. Maximum number of lines to print when limit_output
-#'   is TRUE. Default is 100.
+#' @param limit_output Logical. If TRUE (default), injects global setup code to
+#'   prevent massive data dumps by setting appropriate pander options and output limits.
+#'   The setup code is added to existing setup chunks or creates a new setup chunk.
+#' @param max_print_lines Integer. This parameter is deprecated and ignored.
+#'   Output limiting is now handled through global setup code injection.
 #' @param quiet Logical. If TRUE, suppresses progress messages. Default is FALSE.
 #'
 #' @return Invisibly returns the path to the output file.
@@ -51,6 +51,9 @@
 #' fix_rmd("analysis.Rmd", data_folder = "raw_data")
 #' }
 #'
+#' @import here
+#' @import pander
+#' @import rmarkdown
 #' @export
 fix_rmd <- function(input_rmd,
                     output_rmd = NULL,
@@ -59,7 +62,7 @@ fix_rmd <- function(input_rmd,
                     data_folder = "data",
                     add_student_info = FALSE,
                     limit_output = TRUE,
-                    max_print_lines = 100,
+                    max_print_lines = 100,  # deprecated parameter kept for compatibility
                     quiet = FALSE) {
 
   # Validate input file exists
@@ -86,10 +89,7 @@ fix_rmd <- function(input_rmd,
     }
   }
 
-  # Ensure 'here' package is available if path fixing is enabled
-  if (fix_paths) {
-    ensure_here_available()
-  }
+
 
   # Read input file
   lines <- readLines(input_rmd, encoding = "UTF-8", warn = FALSE)
@@ -114,32 +114,6 @@ fix_rmd <- function(input_rmd,
   # Persistent environment for sequential chunk evaluation
   eval_env <- new.env(parent = globalenv())
 
-  # Set output limits if requested
-  if (limit_output) {
-    # Store original options to restore later
-    orig_max_print <- getOption("max.print")
-    orig_width <- getOption("width")
-
-    # Set conservative limits
-    options(
-      max.print = max_print_lines * 10,  # max.print is in items, not lines
-      width = 80  # Reasonable line width
-    )
-
-    # Set pander options if package is available
-    if (requireNamespace("pander", quietly = TRUE)) {
-      pander::panderOptions("table.split.table", Inf)  # Don't split tables
-      pander::panderOptions("table.emphasize.rownames", FALSE)
-      pander::panderOptions("table.split.cells", 30)
-      pander::panderOptions("keep.line.breaks", TRUE)
-    }
-
-    # Ensure options are restored after processing
-    on.exit({
-      options(max.print = orig_max_print, width = orig_width)
-    }, add = TRUE)
-  }
-
   # First pass: find end of YAML header
   if (add_student_info && !is.null(student_info)) {
     yaml_delimiter_count <- 0
@@ -152,6 +126,14 @@ fix_rmd <- function(input_rmd,
         }
       }
     }
+  }
+
+  # Inject setup code BEFORE processing chunks if requested
+  # This must happen before chunk processing to avoid renumbering chunks
+  if (limit_output) {
+    lines <- inject_setup_code(lines)
+    # Adjust yaml_end_line if we inserted a setup chunk
+    # (inject_setup_code inserts after YAML, so yaml_end_line doesn't change)
   }
 
   # Process line by line
@@ -348,6 +330,9 @@ fix_rmd <- function(input_rmd,
     cat("   ", n_failed, " chunk(s) disabled with eval = FALSE\n", sep = "")
     if (fix_paths) {
       cat("   Bare file paths converted to here::here(\"", data_folder, "\", ...)\n", sep = "")
+    }
+    if (limit_output) {
+      cat("   Global setup code injected for output management\n")
     }
   }
 

@@ -1,0 +1,127 @@
+---
+title: "Another Problematic Student File"
+author: "Struggling Student"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+# Analysis of Student Performance Data
+
+```{r setup, include=FALSE}
+# This setup chunk should WORK and will receive pander injection
+library(tidyverse)
+library(knitr)
+library(ggplot2)
+
+# Basic setup that should succeed
+set.seed(42)
+```
+
+## Loading Data with Path Issues
+
+```{r load-dataset}
+# Various broken path patterns
+student_data <- read_csv("grades.csv")  # Bare filename
+class_data <- read.csv("../data/classes.csv")  # Parent directory 
+import_file <- read_delim("data/students.txt", delim = "|")  # Relative path
+
+# URL that might work but should be here
+web_data <- read.csv("http://example.com/api/data.json")
+
+# This would work with here package
+# good_path <- here::here("data", "grades.csv")
+```
+
+## Data Exploration with Massive Output
+
+```{r explore-data}
+# Create huge dataset
+big_student_data <- data.frame(
+  student_id = rep(1:10000, each = 5),
+  grade = rnorm(50000, 75, 15),
+  subject = rep(c("Math", "Science", "History", "English", "Art"), 10000),
+  semester = sample(1:8, 50000, replace = TRUE),
+  attendance_score = runif(50000, 0, 100),
+  assignment_score = runif(50000, 0, 100),
+  exam_score = runif(50000, 0, 100),
+  project_score = runif(50000, 0, 100),
+  participation_score = runif(50000, 0, 100),
+  extra_credit = rpois(50000, 2),
+  comments = sample(c("Excellent", "Good", "Needs Improvement", "Outstanding"), 50000, replace = TRUE)
+)
+
+# This will cause massive data dump that breaks PDF rendering
+print(big_student_data)
+
+# More massive output from statistical summaries
+detailed_summary <- summary(big_student_data)
+print(detailed_summary)
+
+# Huge frequency table that will bloat document
+subject_table <- table(big_student_data$subject, big_student_data$semester)
+print(subject_table)
+
+# Complex analysis output
+correlation_matrix <- cor(big_student_data[, c("grade", "attendance_score", "assignment_score", "exam_score", "project_score", "participation_score")])
+print(correlation_matrix)
+```
+
+## Statistical Analysis with Errors
+
+```{r statistical-analysis}
+# This chunk will work fine
+successful_analysis <- t.test(big_student_data$grade ~ big_student_data$subject)
+
+# This will fail due to typo
+failed_analysis <- ttes(big_student_data$attendance_score ~ big_student_data$participation_score)
+
+# This will fail due to missing function
+more_failure <- some_cool_statistical_function(big_student_data$exam_score)
+
+# This depends on previous failed code
+dependent_failure <- summary(failed_analysis)
+```
+
+## Visualization Section
+
+```{r visualization}
+# Working visualization
+plot(big_student_data$grade[1:1000], 
+     main = "Student Grades Distribution",
+     xlab = "Student Index", 
+     ylab = "Grade",
+     col = "blue")
+
+# Failing visualization
+failing_plot <- ggplot(big_student_data, aes(x = factor(subject), y = grade)) +
+  geom_boxplot(fill = "red") +  # Will fail - ggplot not loaded
+  theme_minimal()
+```
+
+## Final Analysis with Multiple Issues
+
+```{r final-analysis}
+# This will work if previous chunks succeeded
+final_grades <- aggregate(grade ~ subject, data = big_student_data, FUN = mean)
+
+# This will fail due to undefined variable
+final_error <- analysis_of_failing_chunks(bad_variable)
+
+# This will also fail
+another_error <- final_missing_function(final_grades)
+
+# Working final step
+print(final_grades)
+```
+
+## Export with Problematic Paths
+
+```{r export-results}
+# Multiple path issues
+write.csv(final_grades, "final_results.csv")  # Bare filename
+saveRDS(big_student_data, "large_dataset.rds")  # Bare filename
+write.table(subject_table, "subject_summary.txt", sep = "\t")  # Bare filename
+
+# Absolute path that won't work elsewhere
+write.csv(correlation_matrix, "/home/student/Desktop/final_correlation.csv")
+```

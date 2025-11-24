@@ -12,16 +12,16 @@
 #'   Default is "\\\\.Rmd$" (all .Rmd files).
 #' @param recursive Logical. If TRUE (default), searches subdirectories recursively.
 #' @param fix_paths Logical. If TRUE (default), wraps bare filenames with
-#'   `here::here()`. Requires the 'here' package.
+#'   `here::here()`. The 'here' package is required.
 #' @param data_folder Character string. Subfolder name for data files when using
 #'   `fix_paths = TRUE`. Default is "data".
 #' @param add_student_info Logical. If TRUE, adds the parent folder name (student
 #'   identifier) as a numbered heading at the beginning of each document. Useful
 #'   when students forget to include their name. Default is FALSE.
-#' @param limit_output Logical. If TRUE (default), limits console output to prevent
-#'   massive data dumps. Passed to `fix_rmd()`.
-#' @param max_print_lines Integer. Maximum number of lines to print when limit_output
-#'   is TRUE. Default is 100. Passed to `fix_rmd()`.
+#' @param limit_output Logical. If TRUE (default), injects global setup code to
+#'   prevent massive data dumps. Passed to `fix_rmd()`.
+#' @param max_print_lines Integer. This parameter is deprecated and ignored.
+#'   Kept for compatibility. Passed to `fix_rmd()`.
 #' @param quiet Logical. If TRUE, suppresses individual file progress messages.
 #'   Summary is still printed. Default is FALSE.
 #'
@@ -56,7 +56,7 @@ fix_folder <- function(path = "submissions",
                        data_folder = "data",
                        add_student_info = FALSE,
                        limit_output = TRUE,
-                       max_print_lines = 100,
+                       max_print_lines = 100,  # deprecated parameter kept for compatibility
                        quiet = FALSE) {
 
   # Validate folder exists

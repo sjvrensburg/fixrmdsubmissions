@@ -1,0 +1,131 @@
+---
+title: "Broken Student Submission - Multiple Issues"
+author: "Problematic Student"
+date: "2025-11-24"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+---
+
+# Introduction
+
+This R Markdown file demonstrates multiple common issues that break student submissions.
+
+```{r setup, include=FALSE}
+# This setup chunk should WORK and will receive pander injection
+library(dplyr)
+library(ggplot2)
+
+# Basic setup that should succeed
+x <- 1:10
+
+# Global options to prevent massive data dumps
+# Added automatically by fixrmdsubmissions package
+library(pander)
+
+# Limit console output to prevent massive data dumps
+options(max.print = 1000)
+
+# Configure pander for reasonable table output
+panderOptions('table.split.table', 80)
+panderOptions('table.emphasize.rownames', FALSE)
+panderOptions('table.split.cells', 30)
+panderOptions('keep.line.breaks', TRUE)
+
+# Set reasonable line width
+options(width = 80)
+
+```
+
+# Data Loading with Broken Paths
+
+```{r, eval = FALSE load-data}
+# [fixrmdsubmissions] Chunk execution disabled due to error: could not find function "read_csv"
+# Absolute path that won't work on instructor's computer
+bad_data <- read_csv("/home/student/Downloads/data.csv")
+
+# Bare filename that won't work from different directory
+# [fixrmdsubmissions] Path fixed to use here::here() for portability
+another_bad_path <- read.csv(here::here("data", "student_scores.csv"))
+
+# Should use here::here() but doesn't
+# [fixrmdsubmissions] Path fixed to use here::here() for portability
+yet_another_issue <- readRDS(here::here("data", "model.rds"))
+
+# Missing data file
+# [fixrmdsubmissions] Path fixed to use here::here() for portability
+missing_file <- read_excel(here::here("data", "nonexistent_file.xlsx"))
+```
+
+# Data Analysis with Errors
+
+```{r, eval = FALSE data-analysis}
+# [fixrmdsubmissions] Chunk execution disabled due to error: could not find function "undefined_function"
+# This will work
+summary_data <- summary(iris)
+
+# This will fail - undefined function
+bad_analysis <- undefined_function(summary_data)
+
+# This will cause warning but work
+warning_example <- log(-1:10)
+
+# This will work fine
+working_analysis <- mean(1:100)
+```
+
+# Large Output That Should Be Limited
+
+```{r massive-output}
+# This will print thousands of rows and break documents
+large_dataset <- data.frame(
+  id = 1:5000,
+  value = rnorm(5000),
+  category = sample(letters[1:5], 5000, replace = TRUE),
+  extra_data = rpois(5000, 3),
+  another_column = runif(5000, 0, 100)
+)
+
+# This will create massive output that bloats PDFs
+print(large_dataset)
+
+# Another massive output
+table_output <- table(large_dataset$category, large_dataset$category)
+print(table_output)
+```
+
+# Visualization That Will Work
+
+```{r visualization}
+# This should work fine
+plot(large_dataset$id[1:100], large_dataset$value[1:100],
+     main = "Sample Visualization",
+     xlab = "ID", ylab = "Value")
+```
+
+# Statistical Analysis with Cascading Errors
+
+```{r, eval = FALSE stats-chunk}
+# [fixrmdsubmissions] Chunk execution disabled due to error: could not find function "use_function_that_doesnt_exist"
+# Depends on large_dataset from previous chunk
+correlation_analysis <- cor(large_dataset$value, large_dataset$extra_data)
+
+# This will fail and break all dependent chunks
+bad_dependency <- use_function_that_doesnt_exist(correlation_analysis)
+
+# This should work but depends on broken previous code
+final_analysis <- mean(large_dataset$value)
+```
+
+# Export with Bad Paths
+
+```{r, eval = FALSE export-data}
+# [fixrmdsubmissions] Chunk execution disabled due to error: cannot open the connection
+# More broken file paths
+write.csv(large_dataset, "/absolute/path/output.csv")
+saveRDS(final_analysis, "relative/path/results.rds")
+
+# This would work if paths were fixed
+# correct_path <- here::here("data", "results.csv")
+```

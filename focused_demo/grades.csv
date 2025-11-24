@@ -1,0 +1,11 @@
+student_id,grade,subject,semester,attendance_score
+1001,85,Math,1,92
+1002,78,Science,1,85
+1003,92,History,1,88
+1004,76,English,1,79
+1005,89,Art,1,91
+1006,81,Math,2,83
+1007,77,Science,2,80
+1008,95,History,2,94
+1009,73,English,2,76
+1010,88,Art,2,90

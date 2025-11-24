@@ -26,7 +26,7 @@ Default is "\\\\.Rmd$" (all .Rmd files).}
 \item{recursive}{Logical. If TRUE (default), searches subdirectories recursively.}
 
 \item{fix_paths}{Logical. If TRUE (default), wraps bare filenames with
-\code{here::here()}. Requires the 'here' package.}
+\code{here::here()}. The 'here' package is required.}
 
 \item{data_folder}{Character string. Subfolder name for data files when using
 \code{fix_paths = TRUE}. Default is "data".}
@@ -35,11 +35,11 @@ Default is "\\\\.Rmd$" (all .Rmd files).}
 identifier) as a numbered heading at the beginning of each document. Useful
 when students forget to include their name. Default is FALSE.}
 
-\item{limit_output}{Logical. If TRUE (default), limits console output to prevent
-massive data dumps. Passed to \code{fix_rmd()}.}
+\item{limit_output}{Logical. If TRUE (default), injects global setup code to
+prevent massive data dumps. Passed to \code{fix_rmd()}.}
 
-\item{max_print_lines}{Integer. Maximum number of lines to print when limit_output
-is TRUE. Default is 100. Passed to \code{fix_rmd()}.}
+\item{max_print_lines}{Integer. This parameter is deprecated and ignored.
+Kept for compatibility. Passed to \code{fix_rmd()}.}
 
 \item{quiet}{Logical. If TRUE, suppresses individual file progress messages.
 Summary is still printed. Default is FALSE.}

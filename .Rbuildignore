@@ -1,5 +1,9 @@
 ^LICENSE\.md$
 ^\.claude$
 ^CLAUDE\.md$
+^CRUSH\.md$
 ^agents$
 ^real_examples$
+^.*_demo$
+^.*_demo_with_knitting$
+^\.crush$
