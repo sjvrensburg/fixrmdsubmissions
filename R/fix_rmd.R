@@ -24,6 +24,11 @@
 #' @param add_student_info Logical. If TRUE, adds the parent folder name (student
 #'   identifier) as a numbered heading at the beginning of the document. Useful
 #'   when students forget to include their name. Default is FALSE.
+#' @param limit_output Logical. If TRUE (default), limits console output to prevent
+#'   massive data dumps (e.g., printing entire large datasets). Sets max.print and
+#'   pander options to reasonable limits.
+#' @param max_print_lines Integer. Maximum number of lines to print when limit_output
+#'   is TRUE. Default is 100.
 #' @param quiet Logical. If TRUE, suppresses progress messages. Default is FALSE.
 #'
 #' @return Invisibly returns the path to the output file.
@@ -53,6 +58,8 @@ fix_rmd <- function(input_rmd,
                     fix_paths = TRUE,
                     data_folder = "data",
                     add_student_info = FALSE,
+                    limit_output = TRUE,
+                    max_print_lines = 100,
                     quiet = FALSE) {
 
   # Validate input file exists
@@ -106,6 +113,32 @@ fix_rmd <- function(input_rmd,
 
   # Persistent environment for sequential chunk evaluation
   eval_env <- new.env(parent = globalenv())
+
+  # Set output limits if requested
+  if (limit_output) {
+    # Store original options to restore later
+    orig_max_print <- getOption("max.print")
+    orig_width <- getOption("width")
+
+    # Set conservative limits
+    options(
+      max.print = max_print_lines * 10,  # max.print is in items, not lines
+      width = 80  # Reasonable line width
+    )
+
+    # Set pander options if package is available
+    if (requireNamespace("pander", quietly = TRUE)) {
+      pander::panderOptions("table.split.table", Inf)  # Don't split tables
+      pander::panderOptions("table.emphasize.rownames", FALSE)
+      pander::panderOptions("table.split.cells", 30)
+      pander::panderOptions("keep.line.breaks", TRUE)
+    }
+
+    # Ensure options are restored after processing
+    on.exit({
+      options(max.print = orig_max_print, width = orig_width)
+    }, add = TRUE)
+  }
 
   # First pass: find end of YAML header
   if (add_student_info && !is.null(student_info)) {

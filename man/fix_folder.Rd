@@ -11,6 +11,8 @@ fix_folder(
   fix_paths = TRUE,
   data_folder = "data",
   add_student_info = FALSE,
+  limit_output = TRUE,
+  max_print_lines = 100,
   quiet = FALSE
 )
 }
@@ -32,6 +34,12 @@ Default is "\\\\.Rmd$" (all .Rmd files).}
 \item{add_student_info}{Logical. If TRUE, adds the parent folder name (student
 identifier) as a numbered heading at the beginning of each document. Useful
 when students forget to include their name. Default is FALSE.}
+
+\item{limit_output}{Logical. If TRUE (default), limits console output to prevent
+massive data dumps. Passed to \code{fix_rmd()}.}
+
+\item{max_print_lines}{Integer. Maximum number of lines to print when limit_output
+is TRUE. Default is 100. Passed to \code{fix_rmd()}.}
 
 \item{quiet}{Logical. If TRUE, suppresses individual file progress messages.
 Summary is still printed. Default is FALSE.}

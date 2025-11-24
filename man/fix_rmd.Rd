@@ -11,6 +11,8 @@ fix_rmd(
   fix_paths = TRUE,
   data_folder = "data",
   add_student_info = FALSE,
+  limit_output = TRUE,
+  max_print_lines = 100,
   quiet = FALSE
 )
 }
@@ -31,6 +33,13 @@ functions with \code{here::here()}. Requires the 'here' package.}
 \item{add_student_info}{Logical. If TRUE, adds the parent folder name (student
 identifier) as a numbered heading at the beginning of the document. Useful
 when students forget to include their name. Default is FALSE.}
+
+\item{limit_output}{Logical. If TRUE (default), limits console output to prevent
+massive data dumps (e.g., printing entire large datasets). Sets max.print and
+pander options to reasonable limits.}
+
+\item{max_print_lines}{Integer. Maximum number of lines to print when limit_output
+is TRUE. Default is 100.}
 
 \item{quiet}{Logical. If TRUE, suppresses progress messages. Default is FALSE.}
 }

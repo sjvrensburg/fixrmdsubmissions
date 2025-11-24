@@ -7,6 +7,7 @@
 You're an R instructor with 40+ student submissions. Each student's `.Rmd` file has:
 - Bare file paths like `read_csv("data.csv")` that only work on the student's computer
 - Code chunks with typos or undefined functions that break knitting
+- Massive data dumps that print 10,000+ rows to the document
 - Inconsistent working directories
 
 Manually fixing these before grading takes **hours**. This package does it in **minutes**.
@@ -17,8 +18,9 @@ Manually fixing these before grading takes **hours**. This package does it in **
 1. ✅ **Converts bare file paths** to portable `here::here()` paths
 2. ✅ **Tests each code chunk** by actually running it
 3. ✅ **Adds `eval = FALSE`** only to chunks that fail (preserves working code)
-4. ✅ **Creates backups** before any modifications
-5. ✅ **Batch processes** entire folders of submissions
+4. ✅ **Limits console output** to prevent massive data dumps
+5. ✅ **Creates backups** before any modifications
+6. ✅ **Batch processes** entire folders of submissions
 
 ## Installation
 
@@ -375,6 +377,32 @@ fix_rmd(
 ```r
 fix_rmd("student/work.Rmd", backup = FALSE)
 ```
+
+### Control Output Limiting
+
+By default, the package limits console output to prevent students from printing massive datasets. You can control this behavior:
+
+```r
+# Default: limit output (recommended for most cases)
+fix_rmd("student/work.Rmd", limit_output = TRUE, max_print_lines = 100)
+
+# Disable output limiting (use with caution)
+fix_rmd("student/work.Rmd", limit_output = FALSE)
+
+# Custom limit for shorter/longer output
+fix_rmd("student/work.Rmd", max_print_lines = 50)  # More restrictive
+```
+
+**Why limit output?**
+- Students sometimes print entire large datasets (e.g., `mtcars` repeated 10,000 times)
+- Massive output makes documents unreadable and PDFs enormous
+- Limiting output prevents document bloat while preserving code evaluation
+
+**What gets limited:**
+- Console output from print statements
+- Large data frame displays
+- Long vector outputs
+- Table displays (uses pander options if available)
 
 ### Different Data Organization
 

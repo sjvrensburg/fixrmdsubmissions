@@ -18,6 +18,10 @@
 #' @param add_student_info Logical. If TRUE, adds the parent folder name (student
 #'   identifier) as a numbered heading at the beginning of each document. Useful
 #'   when students forget to include their name. Default is FALSE.
+#' @param limit_output Logical. If TRUE (default), limits console output to prevent
+#'   massive data dumps. Passed to `fix_rmd()`.
+#' @param max_print_lines Integer. Maximum number of lines to print when limit_output
+#'   is TRUE. Default is 100. Passed to `fix_rmd()`.
 #' @param quiet Logical. If TRUE, suppresses individual file progress messages.
 #'   Summary is still printed. Default is FALSE.
 #'
@@ -51,6 +55,8 @@ fix_folder <- function(path = "submissions",
                        fix_paths = TRUE,
                        data_folder = "data",
                        add_student_info = FALSE,
+                       limit_output = TRUE,
+                       max_print_lines = 100,
                        quiet = FALSE) {
 
   # Validate folder exists
@@ -104,6 +110,8 @@ fix_folder <- function(path = "submissions",
           fix_paths = fix_paths,
           data_folder = data_folder,
           add_student_info = add_student_info,
+          limit_output = limit_output,
+          max_print_lines = max_print_lines,
           quiet = quiet
         )
         success_count <- success_count + 1
