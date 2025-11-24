@@ -47,3 +47,6 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Real world test cases (confidential as it features PII)
+real_examples/
