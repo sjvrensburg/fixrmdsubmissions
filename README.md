@@ -295,15 +295,28 @@ This tells the package where your data files are **relative to the project root*
 
 **Example transformations:**
 
-With `data_folder = "."`:
+With `data_folder = "."` (data at project root):
 ```r
+# Bare filename
 read_csv("data.csv")  →  read_csv(here::here(".", "data.csv"))
+
+# Relative path (student created subfolder)
+read_csv("data/data.csv")  →  read_csv(here::here("data", "data.csv"))
+
+# Multi-level relative path
+read_csv("data/raw/scores.csv")  →  read_csv(here::here("data", "raw", "scores.csv"))
 ```
 
 With `data_folder = "data"`:
 ```r
-read_csv("data.csv")  →  read_csv(here::here("data", "data.csv"))
+# Bare filename (adds data folder)
+read_csv("scores.csv")  →  read_csv(here::here("data", "scores.csv"))
+
+# Relative path (respects student's structure)
+read_csv("raw/scores.csv")  →  read_csv(here::here("raw", "scores.csv"))
 ```
+
+**Important:** The package intelligently handles relative paths! If students created their own folder structure (e.g., `"data/test_data.csv"`), it preserves and converts that structure to `here::here()` format.
 
 ### The `.here` File
 
@@ -412,11 +425,23 @@ The package is **very conservative** and never modifies:
 # data <- read_csv("test.csv")  ← Not modified
 ```
 
-❌ **Paths with slashes:**
+❌ **Absolute paths:**
 ```r
-read_csv("data/file.csv")           ← Not modified
-read_csv("/absolute/path/file.csv") ← Not modified
-read_csv("../relative/file.csv")    ← Not modified
+read_csv("/absolute/path/file.csv")     ← Not modified
+read_csv("C:/Users/data/file.csv")      ← Not modified
+read_csv("~/Documents/file.csv")        ← Not modified
+```
+
+❌ **Parent directory references:**
+```r
+read_csv("../relative/file.csv")   ← Not modified
+read_csv("../../data/file.csv")    ← Not modified
+```
+
+❌ **URLs:**
+```r
+read_csv("http://example.com/data.csv")   ← Not modified
+read_csv("https://example.com/data.csv")  ← Not modified
 ```
 
 ❌ **Existing `here::here()` calls:**
@@ -430,9 +455,11 @@ title <- "data.csv"           ← Not modified
 print("Load file.csv")        ← Not modified
 ```
 
-✅ **Only bare filenames in import functions:**
+✅ **Bare filenames and simple relative paths in import functions:**
 ```r
-read_csv("data.csv")          ← MODIFIED
+read_csv("data.csv")              ← MODIFIED
+read_csv("data/scores.csv")       ← MODIFIED
+read_csv("data/raw/file.csv")     ← MODIFIED
 readRDS("model.rds")          ← MODIFIED
 ```
 
