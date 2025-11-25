@@ -97,11 +97,7 @@ fix_rmd <- function(input_rmd,
 
   # Auto-detect data folder if requested - do this EARLY so all path fixing uses resolved folder
   original_data_folder_param <- data_folder
-  if (!quiet) {
-    cat(sprintf("[DEBUG] fix_paths=%s, data_folder='%s'\n", fix_paths, data_folder))
-  }
   if (fix_paths && data_folder == "auto") {
-    if (!quiet) cat("[DEBUG] Calling auto_detect_data_folder...\n")
     data_folder <- auto_detect_data_folder(lines, input_rmd)
     if (!quiet) {
       if (data_folder == "..") {
@@ -223,10 +219,6 @@ fix_rmd <- function(input_rmd,
 
       # Fix paths BEFORE evaluation so data imports work correctly
       if (fix_paths) {
-        # Debug: Show what data_folder we're using
-        if (!quiet && grepl("read_csv|read\\.csv|readRDS", code_raw)) {
-          cat(sprintf("    [DEBUG] Fixing paths with data_folder='%s'\n", data_folder))
-        }
         code_raw <- fix_paths_multiline(code_raw, data_folder)
       }
 
@@ -270,20 +262,30 @@ fix_rmd <- function(input_rmd,
         header <- current_chunk[1]
         error_message <- result$message
 
-        # Try to intelligently add eval = FALSE to the chunk header
-        new_header <- sub(
-          "^(\\s*```+\\s*\\{\\s*r)([,\\s\\}])",
-          "\\1, eval = FALSE\\2",
-          header,
-          perl = TRUE
-        )
-
-        # Fallback if above pattern didn't match
-        if (!grepl("eval", new_header)) {
-          new_header <- sub("\\{\\s*r", "{r, eval = FALSE", header)
+        # Modify eval option in the chunk header
+        # If eval = TRUE exists, replace it with eval = FALSE
+        # Otherwise, add eval = FALSE
+        if (grepl("\\beval\\s*=\\s*TRUE\\b", header, ignore.case = TRUE)) {
+          # Replace eval = TRUE with eval = FALSE
+          new_header <- sub(
+            "\\beval\\s*=\\s*TRUE\\b",
+            "eval = FALSE",
+            header,
+            ignore.case = TRUE,
+            perl = TRUE
+          )
+          current_chunk[1] <- new_header
+        } else if (!grepl("\\beval\\s*=\\s*FALSE\\b", header, ignore.case = TRUE)) {
+          # Add eval = FALSE if no eval option exists
+          # Strategy: insert it right before the closing }
+          new_header <- sub(
+            "^(\\s*```+\\s*\\{\\s*r[^}]*)\\}",
+            "\\1, eval = FALSE}",
+            header,
+            perl = TRUE
+          )
+          current_chunk[1] <- new_header
         }
-
-        current_chunk[1] <- new_header
 
         if (!quiet) {
           cat("   -> marked as eval = FALSE\n")
