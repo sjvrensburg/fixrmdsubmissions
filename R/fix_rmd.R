@@ -20,7 +20,10 @@
 #' @param fix_paths Logical. If TRUE (default), wraps bare filenames in import
 #'   functions with `here::here()`. The 'here' package is required.
 #' @param data_folder Character string. Subfolder name for data files when using
-#'   `fix_paths = TRUE`. Default is "data".
+#'   `fix_paths = TRUE`. Default is "data". Special values:
+#'   - ".": Data files are at project root
+#'   - "..": Data files are in parent directory
+#'   - "auto": Automatically detect if data files are in parent directory
 #' @param add_student_info Logical. If TRUE, adds the parent folder name (student
 #'   identifier) as a numbered heading at the beginning of the document. Useful
 #'   when students forget to include their name. Default is FALSE.
@@ -89,10 +92,18 @@ fix_rmd <- function(input_rmd,
     }
   }
 
-
-
   # Read input file
   lines <- readLines(input_rmd, encoding = "UTF-8", warn = FALSE)
+
+  # Auto-detect data folder if requested
+  if (fix_paths && data_folder == "auto") {
+    detected_folder <- auto_detect_data_folder(lines, input_rmd)
+    data_folder <- detected_folder
+    if (!quiet && detected_folder == "..") {
+      message("Auto-detected: data files are in parent directory")
+    }
+  }
+
   output_lines <- character()
 
   # Extract student info from folder name if requested

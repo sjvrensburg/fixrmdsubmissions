@@ -152,23 +152,60 @@ build_here_call <- function(file_path, data_folder) {
 }
 
 
-#' Check if 'here' package is available
+#' Auto-detect if data files are in parent directory
 #'
 #' @description
-#' Since 'here' is now a hard dependency, this function simply loads the package.
-#' The function is kept for backward compatibility.
+#' Scans the file for common data import patterns and checks if the files
+#' referenced exist in the current directory or parent directory.
+#' Returns ".." if data files are found in parent, "." otherwise.
 #'
-#' @return Logical indicating success
+#' @param lines Character vector of R Markdown file lines
+#' @param rmd_file_path Character string with path to the Rmd file
+#'
+#' @return Character string: ".." if parent directory has data files, "." otherwise
 #'
 #' @keywords internal
 #' @noRd
-ensure_here_available <- function() {
-  # Load here package quietly (now a hard dependency)
-  suppressPackageStartupMessages(
-    requireNamespace("here", quietly = TRUE)
-  )
+auto_detect_data_folder <- function(lines, rmd_file_path) {
+  # Extract directory of the Rmd file
+  rmd_dir <- dirname(normalizePath(rmd_file_path, mustWork = TRUE))
+  parent_dir <- dirname(rmd_dir)
 
-  return(TRUE)
+  # Find all likely data filenames from import statements
+  # Match patterns like read_csv("filename") or read.csv("filename")
+  import_pattern <- '(?:read_csv|read_tsv|read_delim|read_table|read_fwf|read\\.csv|read\\.csv2|read\\.table|read\\.delim|read\\.delim2|readRDS|load|source|read_excel|read_xlsx|read_xls|fread|vroom|qread)\\s*\\(\\s*["\']([^"\']+)["\']'
+
+  filenames <- character()
+  for (line in lines) {
+    matches <- gregexpr(import_pattern, line, perl = TRUE)
+    if (matches[[1]][1] != -1) {
+      # Extract captured group (filename)
+      capture_starts <- attr(matches[[1]], "capture.start")
+      capture_lengths <- attr(matches[[1]], "capture.length")
+
+      for (i in seq_along(capture_starts)) {
+        if (capture_starts[i] > 0) {
+          filename <- substr(line, capture_starts[i], capture_starts[i] + capture_lengths[i] - 1)
+          filenames <- c(filenames, filename)
+        }
+      }
+    }
+  }
+
+  # Check if extracted filenames exist in parent directory
+  # (and not already in current directory as absolute/relative paths)
+  for (filename in filenames) {
+    # Skip if it looks like an absolute path or has path separators
+    if (!grepl("[/\\\\]|^~/|^\\.\\.|\\.\\./", filename)) {
+      if (file.exists(file.path(parent_dir, filename))) {
+        # Found a data file in parent directory
+        return("..")
+      }
+    }
+  }
+
+  # No data files found in parent directory
+  return(".")
 }
 
 #' Generate setup chunk code for output management
