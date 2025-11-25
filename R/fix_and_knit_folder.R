@@ -17,12 +17,12 @@
 #' @param pattern Character string. Pattern to match source files. Default is
 #'   "\\\\.Rmd$" to match all R Markdown files.
 #' @param recursive Logical. If TRUE (default), searches subdirectories recursively.
-#' @param fix_paths Logical. Convert bare file paths to `here::here()` format
-#'   (default TRUE). Requires `here` package if TRUE.
-#' @param data_folder Character string. Subfolder name for data files when fixing
-#'   paths. Default is "auto" which auto-detects if data files are in parent
-#'   directory or current directory. Use "." if data files are at project root,
-#'   ".." if in parent directory, or "data" for a data subdirectory.
+#' @param fix_paths Logical. Replace bare file paths with absolute paths using
+#'   filename-to-path mapping (default TRUE).
+#' @param data_folder Character string. Which directories to search for data files.
+#'   Default is "auto" which searches both parent directory and current directory.
+#'   Use "." to search only current directory, ".." for only parent directory,
+#'   or "data" (or other name) for a specific subdirectory.
 #' @param add_student_info Logical. Add parent folder name as numbered heading
 #'   (default TRUE). Useful when students forget to include their names.
 #' @param limit_output Logical. Inject global setup code to limit console output

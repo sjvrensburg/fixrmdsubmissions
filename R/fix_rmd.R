@@ -5,7 +5,7 @@
 #' \itemize{
 #'   \item Sequentially evaluates all R code chunks in a shared environment
 #'   \item Adds `eval = FALSE` to chunks that fail to execute
-#'   \item Optionally wraps bare file paths with `here::here()`
+#'   \item Optionally replaces bare file paths with absolute paths using filename-to-path mapping
 #'   \item Optionally adds student folder name as heading
 #'   \item Creates backups before modification
 #'   \item Adds transparency comments explaining all modifications
@@ -17,16 +17,17 @@
 #' @param output_rmd Character string or NULL. Path for the output file.
 #'   If NULL (default), appends "_FIXED" before the .Rmd extension.
 #' @param backup Logical. If TRUE (default), creates a backup file with .bak extension.
-#' @param fix_paths Logical. If TRUE (default), wraps bare filenames in import
-#'   functions with `here::here()`. The 'here' package is required.
-#' @param data_folder Character string. Subfolder name for data files when using
-#'   `fix_paths = TRUE`. Default is "data". Special values:
-#'   - ".": Data files are at project root
-#'   - "..": Data files are in parent directory
-#'   - "auto": Automatically detect if data files are in parent directory
+#' @param fix_paths Logical. If TRUE (default), replaces bare filenames in import
+#'   functions with absolute paths using filename-to-path mapping.
+#' @param data_folder Character string. Which directories to search for data files
+#'   when using `fix_paths = TRUE`. Default is "auto". Special values:
+#'   - "auto": Automatically searches both parent directory and current directory (recommended)
+#'   - ".": Only search current directory (where .Rmd file is located)
+#'   - "..": Only search parent directory
+#'   - "data" or other: Search specific subfolder relative to .Rmd file
 #' @param add_student_info Logical. If TRUE, adds the parent folder name (student
 #'   identifier) as a numbered heading at the beginning of the document. Useful
-#'   when students forget to include their name. Default is FALSE.
+#'   when students forget to include their name. Default is TRUE.
 #' @param limit_output Logical. If TRUE (default), injects global setup code to
 #'   prevent massive data dumps by setting appropriate pander options and output limits.
 #'   The setup code is added to existing setup chunks or creates a new setup chunk.
@@ -63,7 +64,7 @@ fix_rmd <- function(input_rmd,
                     backup = TRUE,
                     fix_paths = TRUE,
                     data_folder = "auto",
-                    add_student_info = FALSE,
+                    add_student_info = TRUE,
                     limit_output = TRUE,
                     max_print_lines = 100,  # deprecated parameter kept for compatibility
                     quiet = FALSE) {

@@ -27,13 +27,13 @@ Default is current directory (".").}
 
 \item{recursive}{Logical. If TRUE (default), searches subdirectories recursively.}
 
-\item{fix_paths}{Logical. Convert bare file paths to \code{here::here()} format
-(default TRUE). Requires \code{here} package if TRUE.}
+\item{fix_paths}{Logical. Replace bare file paths with absolute paths using
+filename-to-path mapping (default TRUE).}
 
-\item{data_folder}{Character string. Subfolder name for data files when fixing
-paths. Default is "auto" which auto-detects if data files are in parent
-directory or current directory. Use "." if data files are at project root,
-".." if in parent directory, or "data" for a data subdirectory.}
+\item{data_folder}{Character string. Which directories to search for data files.
+Default is "auto" which searches both parent directory and current directory.
+Use "." to search only current directory, ".." for only parent directory,
+or "data" (or other name) for a specific subdirectory.}
 
 \item{add_student_info}{Logical. Add parent folder name as numbered heading
 (default TRUE). Useful when students forget to include their names.}

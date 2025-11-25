@@ -9,8 +9,8 @@ fix_folder(
   pattern = "\\\\.Rmd$",
   recursive = TRUE,
   fix_paths = TRUE,
-  data_folder = "data",
-  add_student_info = FALSE,
+  data_folder = "auto",
+  add_student_info = TRUE,
   limit_output = TRUE,
   max_print_lines = 100,
   quiet = FALSE
@@ -25,15 +25,15 @@ Default is "\\\\.Rmd$" (all .Rmd files).}
 
 \item{recursive}{Logical. If TRUE (default), searches subdirectories recursively.}
 
-\item{fix_paths}{Logical. If TRUE (default), wraps bare filenames with
-\code{here::here()}. The 'here' package is required.}
+\item{fix_paths}{Logical. If TRUE (default), replaces bare filenames with
+absolute paths using filename-to-path mapping.}
 
-\item{data_folder}{Character string. Subfolder name for data files when using
-\code{fix_paths = TRUE}. Default is "data".}
+\item{data_folder}{Character string. Which directories to search for data files
+when using \code{fix_paths = TRUE}. Default is "auto" (both parent and current directory).}
 
 \item{add_student_info}{Logical. If TRUE, adds the parent folder name (student
 identifier) as a numbered heading at the beginning of each document. Useful
-when students forget to include their name. Default is FALSE.}
+when students forget to include their name. Default is TRUE.}
 
 \item{limit_output}{Logical. If TRUE (default), injects global setup code to
 prevent massive data dumps. Passed to \code{fix_rmd()}.}

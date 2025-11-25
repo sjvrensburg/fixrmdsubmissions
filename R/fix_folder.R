@@ -11,13 +11,13 @@
 #' @param pattern Character string. Regular expression pattern to match files.
 #'   Default is "\\\\.Rmd$" (all .Rmd files).
 #' @param recursive Logical. If TRUE (default), searches subdirectories recursively.
-#' @param fix_paths Logical. If TRUE (default), wraps bare filenames with
-#'   `here::here()`. The 'here' package is required.
-#' @param data_folder Character string. Subfolder name for data files when using
-#'   `fix_paths = TRUE`. Default is "data".
+#' @param fix_paths Logical. If TRUE (default), replaces bare filenames with
+#'   absolute paths using filename-to-path mapping.
+#' @param data_folder Character string. Which directories to search for data files
+#'   when using `fix_paths = TRUE`. Default is "auto" (both parent and current directory).
 #' @param add_student_info Logical. If TRUE, adds the parent folder name (student
 #'   identifier) as a numbered heading at the beginning of each document. Useful
-#'   when students forget to include their name. Default is FALSE.
+#'   when students forget to include their name. Default is TRUE.
 #' @param limit_output Logical. If TRUE (default), injects global setup code to
 #'   prevent massive data dumps. Passed to `fix_rmd()`.
 #' @param max_print_lines Integer. This parameter is deprecated and ignored.
@@ -54,7 +54,7 @@ fix_folder <- function(path = "submissions",
                        recursive = TRUE,
                        fix_paths = TRUE,
                        data_folder = "auto",
-                       add_student_info = FALSE,
+                       add_student_info = TRUE,
                        limit_output = TRUE,
                        max_print_lines = 100,  # deprecated parameter kept for compatibility
                        quiet = FALSE) {

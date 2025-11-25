@@ -9,8 +9,8 @@ fix_rmd(
   output_rmd = NULL,
   backup = TRUE,
   fix_paths = TRUE,
-  data_folder = "data",
-  add_student_info = FALSE,
+  data_folder = "auto",
+  add_student_info = TRUE,
   limit_output = TRUE,
   max_print_lines = 100,
   quiet = FALSE
@@ -24,20 +24,21 @@ If NULL (default), appends "_FIXED" before the .Rmd extension.}
 
 \item{backup}{Logical. If TRUE (default), creates a backup file with .bak extension.}
 
-\item{fix_paths}{Logical. If TRUE (default), wraps bare filenames in import
-functions with \code{here::here()}. The 'here' package is required.}
+\item{fix_paths}{Logical. If TRUE (default), replaces bare filenames in import
+functions with absolute paths using filename-to-path mapping.}
 
-\item{data_folder}{Character string. Subfolder name for data files when using
-\code{fix_paths = TRUE}. Default is "data". Special values:
+\item{data_folder}{Character string. Which directories to search for data files
+when using \code{fix_paths = TRUE}. Default is "auto". Special values:
 \itemize{
-\item ".": Data files are at project root
-\item "..": Data files are in parent directory
-\item "auto": Automatically detect if data files are in parent directory
+\item "auto": Automatically searches both parent directory and current directory (recommended)
+\item ".": Only search current directory (where .Rmd file is located)
+\item "..": Only search parent directory
+\item "data" or other: Search specific subfolder relative to .Rmd file
 }}
 
 \item{add_student_info}{Logical. If TRUE, adds the parent folder name (student
 identifier) as a numbered heading at the beginning of the document. Useful
-when students forget to include their name. Default is FALSE.}
+when students forget to include their name. Default is TRUE.}
 
 \item{limit_output}{Logical. If TRUE (default), injects global setup code to
 prevent massive data dumps by setting appropriate pander options and output limits.
@@ -56,7 +57,7 @@ Processes a single R Markdown file to fix common student submission issues:
 \itemize{
 \item Sequentially evaluates all R code chunks in a shared environment
 \item Adds \code{eval = FALSE} to chunks that fail to execute
-\item Optionally wraps bare file paths with \code{here::here()}
+\item Optionally replaces bare file paths with absolute paths using filename-to-path mapping
 \item Optionally adds student folder name as heading
 \item Creates backups before modification
 \item Adds transparency comments explaining all modifications

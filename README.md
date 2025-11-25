@@ -15,7 +15,7 @@ Manually fixing these before grading takes **hours**. This package does it in **
 ## The Solution
 
 `fixrmdsubmissions` automatically:
-1. ✅ **Converts bare file paths** to portable `here::here()` paths
+1. ✅ **Converts bare file paths** to absolute paths using intelligent filename-to-path mapping
 2. ✅ **Tests each code chunk** by actually running it
 3. ✅ **Adds `eval = FALSE`** only to chunks that fail (preserves working code)
 4. ✅ **Limits console output** to prevent massive data dumps
@@ -64,15 +64,12 @@ setwd("~/Downloads/STAT312-Test1-Submissions/")
 
 library(fixrmdsubmissions)
 
-# Create .here file to mark project root
-writeLines("here root", ".here")
-
 # Fix and knit all submissions in one step
 results <- fix_and_knit_folder(
   path = ".",               # Current folder
   recursive = TRUE,         # Search subdirectories
-  fix_paths = TRUE,         # Convert to here::here()
-  data_folder = ".",        # Data files are at parent level
+  fix_paths = TRUE,         # Replace paths with absolute paths
+  data_folder = "auto",     # Auto-detect data files (parent or current directory)
   add_student_info = TRUE,  # Add folder name as heading
   output_dir = "graded_submissions"  # Collect all outputs in one folder
 )
@@ -94,15 +91,7 @@ If you prefer more control or need to re-knit already-fixed files:
 setwd("~/Downloads/STAT312-Test1-Submissions/")
 ```
 
-##### Step 2: Mark this as your project root
-
-This tells the `here` package where to find data files:
-
-```r
-writeLines("here root", ".here")
-```
-
-##### Step 3: Load the package and fix all submissions
+##### Step 2: Load the package and fix all submissions
 
 ```r
 library(fixrmdsubmissions)
@@ -110,14 +99,14 @@ library(fixrmdsubmissions)
 fix_folder(
   path = ".",               # Current folder
   recursive = TRUE,         # Search subdirectories
-  fix_paths = TRUE,         # Convert to here::here()
-  data_folder = ".",        # Data files are at parent level
-  add_student_info = TRUE,  # Add folder name as heading (if students forgot their name)
+  fix_paths = TRUE,         # Replace with absolute paths
+  data_folder = "auto",     # Auto-detect data files
+  add_student_info = TRUE,  # Add folder name as heading
   quiet = FALSE             # Show progress
 )
 ```
 
-##### Step 4: Knit all fixed submissions
+##### Step 3: Knit all fixed submissions
 
 The package respects each file's YAML output format (including custom templates):
 
@@ -134,7 +123,7 @@ results <- knit_fixed_files(
 View(results)  # See which files succeeded/failed
 ```
 
-#### Step 5: Review the output
+#### Step 4: Review the output
 
 ```
 Found 36 R Markdown file(s) in: .
@@ -143,6 +132,7 @@ Starting repair...
 ==============================================================
 Processing [1/36]: Barnes_Nangamso_12345/test.Rmd
 ==============================================================
+Found 3 data file(s) to map: student_data.csv, reference_data.csv, scores.csv
 Chunk  1 (line ~10) ... OK
 Chunk  2 (line ~20) ... OK
 Chunk  3 (line ~35) ... FAILED
@@ -152,7 +142,7 @@ Chunk  3 (line ~35) ... FAILED
 Finished!
    Output -> Barnes_Nangamso_12345/test_FIXED.Rmd
    1 chunk(s) disabled with eval = FALSE
-   Bare file paths converted to here::here(".", ...)
+   File paths replaced with absolute paths
 
 ==============================================================
 Processing [2/36]: Chetty_Dhiren_67890/test.Rmd
@@ -170,7 +160,7 @@ Fixed files saved with '_FIXED.Rmd' suffix in original locations.
 Backups saved with '.bak' extension.
 ```
 
-#### Step 6: Check outputs
+#### Step 5: Check outputs
 
 Each student folder now has:
 - `test.Rmd.bak` - Original backup
@@ -233,8 +223,8 @@ library(tidyverse)
 ```
 
 ```{r load-data}
-# Path fixed to work from any location!
-data <- read_csv(here::here(".", "student_data.csv"))
+# Path fixed with absolute path!
+data <- read_csv("/full/absolute/path/to/student_data.csv")
 ```
 
 ```{r, eval = FALSE}
@@ -291,8 +281,8 @@ When a file path is modified, a comment explains the change:
 data <- read_csv("scores.csv")
 
 # After fixing:
-# [fixrmdsubmissions] Path fixed to use here::here() for portability
-data <- read_csv(here::here(".", "scores.csv"))
+# [fixrmdsubmissions] Path fixed with absolute path for portability
+data <- read_csv("/full/absolute/path/to/scores.csv")
 ```
 
 #### Disabled Chunks
@@ -313,52 +303,40 @@ This transparency ensures:
 
 ### `data_folder` Parameter
 
-This tells the package where your data files are **relative to the project root** (where the `.here` file is).
+This tells the package **which directories to scan** for data files.
 
-| Your Setup | Use | Example |
-|------------|-----|---------|
-| Data at same level as student folders | `data_folder = "."` | Most common for LMS downloads |
-| Data in a `data/` subfolder | `data_folder = "data"` | If you organize files yourself |
-| Data in `assignment_files/` | `data_folder = "assignment_files"` | Custom organization |
+| Your Setup | Use | How it Works |
+|------------|-----|--------------|
+| Data at parent level (most common) | `data_folder = "auto"` | Searches both parent directory and current directory (recommended) |
+| Data only in current directory | `data_folder = "."` | Only scans where .Rmd file is located |
+| Data only in parent directory | `data_folder = ".."` | Only scans parent folder |
+| Data in specific subfolder | `data_folder = "data"` | Scans specific subdirectory relative to .Rmd file |
 
-**Example transformations:**
+**How Path Fixing Works:**
 
-With `data_folder = "."` (data at project root):
+The package scans the specified directories for common data files (.csv, .rds, .xlsx, etc.), creates a filename-to-absolute-path mapping, then replaces any occurrence of those filenames in the code with their absolute paths.
+
+**Example transformations with `data_folder = "auto"`:**
+
 ```r
-# Bare filename
-read_csv("data.csv")  →  read_csv(here::here(".", "data.csv"))
+# Bare filename - replaced with absolute path
+read_csv("student_data.csv")  →  read_csv("/path/to/student_data.csv")
 
-# Relative path (student created subfolder)
-read_csv("data/data.csv")  →  read_csv(here::here("data", "data.csv"))
+# Relative path - filename extracted and replaced
+read_csv("data/scores.csv")  →  read_csv("/path/to/scores.csv")
 
-# Multi-level relative path
-read_csv("data/raw/scores.csv")  →  read_csv(here::here("data", "raw", "scores.csv"))
+# Multi-level path - filename still found and replaced
+read_csv("raw/2025/file.csv")  →  read_csv("/path/to/file.csv")
 ```
 
-With `data_folder = "data"`:
-```r
-# Bare filename (adds data folder)
-read_csv("scores.csv")  →  read_csv(here::here("data", "scores.csv"))
+**Key Advantages:**
 
-# Relative path (respects student's structure)
-read_csv("raw/scores.csv")  →  read_csv(here::here("raw", "scores.csv"))
-```
+- **Automatic Discovery**: No manual path configuration needed
+- **Works Anywhere**: Absolute paths work regardless of working directory
+- **Simple & Reliable**: Direct string replacement, no complex path resolution
+- **No Special Setup**: No `.here` files or project markers required
 
-**Important:** The package intelligently handles relative paths! If students created their own folder structure (e.g., `"data/test_data.csv"`), it preserves and converts that structure to `here::here()` format.
-
-### The `.here` File
-
-The `.here` file tells the `here` package where your project root is. This is crucial because:
-
-1. **Without `.here`:** The `here` package searches for project markers (`.git`, `.Rproj`) and might find the wrong folder
-2. **With `.here`:** The `here` package uses exactly the folder you specify
-
-**Creating it:**
-```r
-writeLines("here root", ".here")
-```
-
-Put this file in the same folder as your data files (typically the parent folder of all student submissions).
+The `"auto"` setting (default) is recommended because it handles the most common scenario where data files might be in either the parent directory (with student folders) or in the current directory.
 
 ## Advanced Usage
 
@@ -368,14 +346,14 @@ Put this file in the same folder as your data files (typically the parent folder
 fix_rmd(
   "Barnes_Nangamso_12345/test.Rmd",
   fix_paths = TRUE,
-  data_folder = ".",
+  data_folder = "auto",
   quiet = FALSE
 )
 ```
 
 ### Disable Path Fixing
 
-If students already used `here::here()` correctly:
+If paths are already correct or you want to handle them manually:
 
 ```r
 fix_folder(".", fix_paths = FALSE)
@@ -508,69 +486,39 @@ results <- knit_fixed_files(
 
 ## How Path Fixing Works
 
-### What Gets Fixed
+### Filename-to-Absolute-Path Mapping
 
-The package recognizes these common data import functions:
+The package uses a simple and reliable approach:
 
-**readr (tidyverse):**
-- `read_csv()`, `read_tsv()`, `read_delim()`, `read_table()`, `read_fwf()`
+1. **Scan for Data Files**: Searches specified directories for common data file extensions (.csv, .rds, .xlsx, etc.)
+2. **Build Mapping**: Creates a filename → absolute path dictionary
+3. **Replace Paths**: Any quoted occurrence of those filenames in the code gets replaced with the absolute path
 
-**Base R:**
-- `read.csv()`, `read.csv2()`, `read.table()`, `read.delim()`, `read.delim2()`
+### Recognized Data File Extensions
 
-**Other packages:**
-- `readRDS()`, `load()`, `source()`
-- `read_excel()`, `read_xlsx()`, `read_xls()` (readxl)
-- `fread()` (data.table)
-- `vroom()` (vroom)
-- `qread()` (qs)
+csv, tsv, txt, rds, RDS, rda, RData, xlsx, xls, json, xml, feather, parquet, sav, dta, sas7bdat, qs
 
-### What Stays Unchanged
+### Example Transformation
 
-The package is **very conservative** and never modifies:
-
-❌ **Full-line comments:**
+**Before fixing:**
 ```r
-# data <- read_csv("test.csv")  ← Not modified
+data <- read_csv("student_data.csv")
+scores <- read_xlsx("data/scores.xlsx")
+model <- readRDS("models/final.rds")
 ```
 
-❌ **Absolute paths:**
+**After fixing (with `data_folder = "auto"`):**
 ```r
-read_csv("/absolute/path/file.csv")     ← Not modified
-read_csv("C:/Users/data/file.csv")      ← Not modified
-read_csv("~/Documents/file.csv")        ← Not modified
+data <- read_csv("/home/instructor/submissions/student_data.csv")
+scores <- read_xlsx("/home/instructor/submissions/scores.xlsx")
+model <- readRDS("/home/instructor/submissions/final.rds")
 ```
 
-❌ **Parent directory references:**
-```r
-read_csv("../relative/file.csv")   ← Not modified
-read_csv("../../data/file.csv")    ← Not modified
-```
-
-❌ **URLs:**
-```r
-read_csv("http://example.com/data.csv")   ← Not modified
-read_csv("https://example.com/data.csv")  ← Not modified
-```
-
-❌ **Existing `here::here()` calls:**
-```r
-read_csv(here::here("data", "file.csv"))  ← Not modified
-```
-
-❌ **Strings outside import functions:**
-```r
-title <- "data.csv"           ← Not modified
-print("Load file.csv")        ← Not modified
-```
-
-✅ **Bare filenames and simple relative paths in import functions:**
-```r
-read_csv("data.csv")              ← MODIFIED
-read_csv("data/scores.csv")       ← MODIFIED
-read_csv("data/raw/file.csv")     ← MODIFIED
-readRDS("model.rds")          ← MODIFIED
-```
+**Key Points:**
+- Works with any data import function (read_csv, read_xlsx, readRDS, etc.)
+- Filename extraction works even with paths (`"data/file.csv"` → finds `file.csv`)
+- Absolute paths work from any working directory
+- Simple string replacement - transparent and predictable
 
 ## Chunk Evaluation Strategy
 
@@ -636,25 +584,14 @@ Tested on real student submissions:
 
 ## Troubleshooting
 
-### Error: "The 'here' package is required"
-
-**Solution:**
-```r
-install.packages("here")
-```
-
-Or disable path fixing:
-```r
-fix_folder(".", fix_paths = FALSE)
-```
-
 ### Files still won't knit after fixing
 
 **Possible causes:**
 
-1. **Data files in wrong location**
-   - Check: Are CSV files where you think they are?
-   - Fix: Make sure `data_folder` parameter matches your structure
+1. **Data files not found**
+   - Check: Are data files in the expected location?
+   - Fix: Verify `data_folder` parameter or check if files exist
+   - Debug: Look for "Found X data file(s) to map" message during fixing
 
 2. **Missing R packages**
    - Error will say: `could not find function 'read_csv'`
@@ -678,9 +615,10 @@ fix_rmd("student/work.Rmd")
 
 ### Path fixing not working
 
-**Check 1:** Is there a `.here` file?
+**Check 1:** Are data files being found?
 ```r
-file.exists(".here")  # Should return TRUE
+# During fix_folder(), look for this message:
+# "Found 3 data file(s) to map: file1.csv, file2.xlsx, ..."
 ```
 
 **Check 2:** Are you in the right directory?
@@ -688,9 +626,11 @@ file.exists(".here")  # Should return TRUE
 getwd()  # Should show your submissions folder
 ```
 
-**Check 3:** Is the `data_folder` parameter correct?
+**Check 3:** Are data files in the scanned directories?
 ```r
-list.files(".", pattern = "\\.csv$")  # Should show your data files
+# With data_folder = "auto", check both:
+list.files(".", pattern = "\\.csv$")    # Current directory
+list.files("..", pattern = "\\.csv$")   # Parent directory
 ```
 
 ## Save Time with a Reusable Script
@@ -707,33 +647,27 @@ Create `fix_submissions.R` in your submissions folder:
 
 library(fixrmdsubmissions)
 
-# Mark project root (only needed once)
-if (!file.exists(".here")) {
-  writeLines("here root", ".here")
-  cat("✓ Created .here file\n\n")
-}
-
-# Fix all submissions
+# Fix and knit all submissions in one go
 cat("Processing all R Markdown submissions...\n")
 cat(strrep("=", 60), "\n\n")
 
-fix_folder(
+results <- fix_and_knit_folder(
   path = ".",
   recursive = TRUE,
   fix_paths = TRUE,
-  data_folder = ".",
-  quiet = FALSE
+  data_folder = "auto",
+  add_student_info = TRUE,
+  output_dir = "graded_submissions"
 )
 
 cat("\n", strrep("=", 60), "\n")
-cat("\n✓ Done! Fixed files saved with '_FIXED.Rmd' suffix.\n")
-cat("  You can now knit the *_FIXED.Rmd files.\n\n")
+cat("\n✓ Done! All outputs in 'graded_submissions/' folder.\n\n")
 
-# Optional: List all fixed files
-fixed <- list.files(".", pattern = "_FIXED\\.Rmd$",
-                    recursive = TRUE, full.names = TRUE)
-cat("Fixed", length(fixed), "files:\n")
-cat(paste("  -", basename(dirname(fixed))), sep = "\n")
+# Show summary
+cat("Fixing results:\n")
+print(table(results$fix_results$success))
+cat("\nKnitting results:\n")
+print(table(results$knit_results$success))
 ```
 
 Then just run:
@@ -763,10 +697,10 @@ The demo includes:
 
 #### 🔧 **Issues Demonstrated**
 - ✅ Missing packages and undefined functions → `eval = FALSE` chunks
-- ✅ Bare filenames and broken paths → `here::here()` conversion  
+- ✅ Bare filenames and broken paths → Absolute path replacement
 - ✅ Massive data dumps → Global output limiting setup
 - ✅ Cascading failures → Sequential chunk evaluation
-- ✅ Various import functions → Intelligent path detection
+- ✅ Various import functions → Intelligent filename mapping
 
 #### 📊 **Demo Results**
 The demo processes files and shows:
@@ -821,13 +755,16 @@ $ cd "STAT312 (2025)-Test 1 Submission-234139/"
 $ R
 
 > library(fixrmdsubmissions)
-> writeLines("here root", ".here")
-> fix_folder(".", data_folder = ".")
+> fix_and_knit_folder(".", output_dir = "graded")
 
+PHASE 1: FIXING R MARKDOWN FILES
+======================================================================
 Found 36 R Markdown file(s) in: .
 Starting repair...
 
 Processing [1/36]: Barnes Nangamso Nyameka_511453.../practical_test_01.Rmd
+======================================================================
+Found 2 data file(s) to map: test_data.csv, reference.xlsx
 Chunk  1 (line ~22) ... OK
 Chunk  2 (line ~42) ... OK
 Chunk  3 (line ~58) ... OK          # Data loaded successfully!
@@ -836,17 +773,15 @@ Chunk  4 (line ~75) ... FAILED
    -> marked as eval = FALSE
 
 Processing [2/36]: Chetty Dhiren_511485.../practical_test_01.Rmd
-Chunk  1 (line ~22) ... OK
-Chunk  2 (line ~40) ... OK
-Chunk  3 (line ~60) ... OK
+======================================================================
 ...
 
-SUMMARY
-Total files processed: 36
-Successful: 36
-Errors: 0
+PHASE 2: KNITTING FIXED R MARKDOWN FILES
+======================================================================
+Successfully knitted: 35 (97.2%)
+Errors: 1
 
-Fixed files saved with '_FIXED.Rmd' suffix in original locations.
+All outputs saved to: /path/to/graded
 ```
 
 **Result:** All 36 submissions processed in ~2 minutes. Files that previously wouldn't knit now render successfully, showing student work with errors clearly marked.
@@ -887,7 +822,8 @@ devtools::install()
 ## Requirements
 
 - R >= 4.0.0
-- Suggested: `here` package (required if using `fix_paths = TRUE`)
+- `rmarkdown` package (for knitting)
+- `pander` package (for output limiting)
 - Suggested: `testthat` (for development)
 
 ## License
@@ -913,7 +849,7 @@ ORCID: 0000-0002-0749-2277
 
 Built with frustration after manually fixing the 247th broken student submission. This tool exists because every R instructor has spent hours debugging student path issues when they should be grading statistical understanding.
 
-Special thanks to the `here` package developers for solving the "where am I?" problem in R.
+Thanks to all the R package developers whose tools make R Markdown and data science education possible.
 
 ---
 
