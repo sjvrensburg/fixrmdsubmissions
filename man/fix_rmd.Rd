@@ -28,7 +28,12 @@ If NULL (default), appends "_FIXED" before the .Rmd extension.}
 functions with \code{here::here()}. The 'here' package is required.}
 
 \item{data_folder}{Character string. Subfolder name for data files when using
-\code{fix_paths = TRUE}. Default is "data".}
+\code{fix_paths = TRUE}. Default is "data". Special values:
+\itemize{
+\item ".": Data files are at project root
+\item "..": Data files are in parent directory
+\item "auto": Automatically detect if data files are in parent directory
+}}
 
 \item{add_student_info}{Logical. If TRUE, adds the parent folder name (student
 identifier) as a numbered heading at the beginning of the document. Useful

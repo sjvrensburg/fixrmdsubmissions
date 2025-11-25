@@ -73,6 +73,10 @@ fix_folder <- function(path = "submissions",
     ignore.case = TRUE
   )
 
+  # Skip already-processed files (those ending with _FIXED.Rmd, _FIXED_FIXED.Rmd, etc.)
+  # This prevents re-processing the same file multiple times
+  files <- files[!grepl("_FIXED.*\\.Rmd$", files, ignore.case = TRUE)]
+
   if (length(files) == 0) {
     message("No R Markdown files found in: ", path)
     return(invisible(character(0)))

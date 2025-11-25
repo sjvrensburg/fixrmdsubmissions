@@ -25,11 +25,8 @@ Manually fixing these before grading takes **hours**. This package does it in **
 ## Installation
 
 ```r
-# Install from local source
-devtools::install_local("path/to/fixrmdsubmissions")
-
-# Or install directly from GitHub (once published)
-# devtools::install_github("yourusername/fixrmdsubmissions")
+# Install directly from GitHub
+remotes::install_github("sjvrensburg/fixrmdsubmissions")
 ```
 
 ## Your Grading Workflow
