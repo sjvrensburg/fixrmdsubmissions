@@ -84,6 +84,10 @@ knit_fixed_files <- function(path = ".",
     ignore.case = TRUE
   )
 
+  # Filter to only knit the first _FIXED version, not re-processed ones
+  # (matches _FIXED.Rmd but not _FIXED_FIXED.Rmd, _FIXED_FIXED_FIXED.Rmd, etc.)
+  files <- files[!grepl("_FIXED_FIXED", files, ignore.case = TRUE)]
+
   if (length(files) == 0) {
     message("No fixed R Markdown files found matching pattern: ", pattern)
     return(invisible(data.frame(

@@ -97,10 +97,18 @@ fix_rmd <- function(input_rmd,
 
   # Auto-detect data folder if requested - do this EARLY so all path fixing uses resolved folder
   original_data_folder_param <- data_folder
+  if (!quiet) {
+    cat(sprintf("[DEBUG] fix_paths=%s, data_folder='%s'\n", fix_paths, data_folder))
+  }
   if (fix_paths && data_folder == "auto") {
+    if (!quiet) cat("[DEBUG] Calling auto_detect_data_folder...\n")
     data_folder <- auto_detect_data_folder(lines, input_rmd)
-    if (!quiet && data_folder == "..") {
-      message("Auto-detected: data files are in parent directory")
+    if (!quiet) {
+      if (data_folder == "..") {
+        message("Auto-detected: data files are in parent directory")
+      } else {
+        message("Auto-detected: data files are in current directory (using '.')")
+      }
     }
   }
 
@@ -215,6 +223,10 @@ fix_rmd <- function(input_rmd,
 
       # Fix paths BEFORE evaluation so data imports work correctly
       if (fix_paths) {
+        # Debug: Show what data_folder we're using
+        if (!quiet && grepl("read_csv|read\\.csv|readRDS", code_raw)) {
+          cat(sprintf("    [DEBUG] Fixing paths with data_folder='%s'\n", data_folder))
+        }
         code_raw <- fix_paths_multiline(code_raw, data_folder)
       }
 
