@@ -1,6 +1,126 @@
 # Path fixing and output management utilities
 # Internal helper functions for intelligently fixing bare file paths and managing output
 
+#' Fix bare file paths in multiline R code
+#'
+#' @description
+#' Intelligently replaces file paths in common data import functions
+#' across multiline code blocks. Handles function calls that span multiple lines.
+#'
+#' @param text Character string of R code (potentially multiline)
+#' @param data_folder Character string for the data subfolder
+#'
+#' @return Character string with fixed paths
+#'
+#' @keywords internal
+#' @noRd
+fix_paths_multiline <- function(text, data_folder) {
+  if (!nzchar(text)) return(text)
+
+  # List of common import functions
+  import_functions <- c(
+    "read_csv", "read_tsv", "read_delim", "read_table", "read_fwf",
+    "read\\.csv", "read\\.csv2", "read\\.table", "read\\.delim", "read\\.delim2",
+    "readRDS", "load", "source",
+    "read_excel", "read_xlsx", "read_xls",
+    "fread", "vroom", "qread"
+  )
+
+  # Build pattern that matches function calls with file paths (allowing for newlines)
+  # This pattern is more permissive and uses DOTALL mode (dot matches newlines)
+  pattern_prefix <- paste0(
+    "\\b(?:", paste(import_functions, collapse = "|"), ")\\s*\\("
+  )
+
+  # Match: function(..., "path/file.ext", ...)
+  # This is complex because we need to handle newlines and other arguments
+  result <- text
+
+  # Find all import function calls
+  func_matches <- gregexpr(pattern_prefix, result, perl = TRUE, ignore.case = TRUE)
+
+  if (func_matches[[1]][1] != -1) {
+    # For each function call, find quoted strings within it
+    match_starts <- as.vector(func_matches[[1]])
+    match_lengths <- attr(func_matches[[1]], "match.length")
+
+    # Process from end to beginning to maintain positions
+    for (i in length(match_starts):1) {
+      func_start <- match_starts[i]
+
+      # Find the closing paren for this function call
+      # Start after the opening paren
+      paren_count <- 1
+      pos <- func_start + match_lengths[i]
+
+      while (pos <= nchar(result) && paren_count > 0) {
+        char <- substr(result, pos, pos)
+        if (char == "(") paren_count <- paren_count + 1
+        else if (char == ")") paren_count <- paren_count - 1
+        pos <- pos + 1
+      }
+
+      func_end <- pos - 1
+
+      # Extract the function call body
+      func_call <- substr(result, func_start, func_end)
+
+      # Find all quoted file paths in this function call
+      # Pattern: "filename.ext" or 'filename.ext'
+      path_pattern <- '(["\'])([^"\']*\\.([A-Za-z0-9]+))\\1'
+      path_matches <- gregexpr(path_pattern, func_call, perl = TRUE)
+
+      if (path_matches[[1]][1] != -1) {
+        path_match_starts <- as.vector(path_matches[[1]])
+        path_match_lengths <- attr(path_matches[[1]], "match.length")
+        path_capture_starts <- attr(path_matches[[1]], "capture.start")
+        path_capture_lengths <- attr(path_matches[[1]], "capture.length")
+
+        # Process file paths from end to beginning
+        for (j in length(path_match_starts):1) {
+          # Extract path (capture group 2)
+          path_start_in_call <- path_capture_starts[j, 2]
+          path_length <- path_capture_lengths[j, 2]
+          file_path <- substr(func_call, path_start_in_call, path_start_in_call + path_length - 1)
+
+          # Skip absolute paths, URLs, and paths that already use here::here()
+          if (grepl("^(~/|/|[A-Z]:|http|here::here)", file_path)) {
+            next
+          }
+
+          # Skip paths already using ../ or ./ (likely intentional)
+          if (grepl("^\\.\\./|^\\./", file_path)) {
+            next
+          }
+
+          # Build replacement - need to include the quotes
+          replacement <- build_here_call(file_path, data_folder)
+
+          # Replace the entire match (including quotes) with the here::here() call
+          # The match includes the opening quote, the path, and the closing quote
+          match_start_in_call <- path_match_starts[j]
+          match_end_in_call <- match_start_in_call + path_match_lengths[j] - 1
+
+          func_call <- paste0(
+            substr(func_call, 1, match_start_in_call - 1),
+            replacement,
+            substr(func_call, match_end_in_call + 1, nchar(func_call))
+          )
+        }
+
+        # Replace the function call in the original result
+        result <- paste0(
+          substr(result, 1, func_start - 1),
+          func_call,
+          substr(result, func_end + 1, nchar(result))
+        )
+      }
+    }
+  }
+
+  return(result)
+}
+
 #' Fix bare file paths in a line of R code
 #'
 #' @description

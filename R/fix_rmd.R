@@ -95,11 +95,11 @@ fix_rmd <- function(input_rmd,
   # Read input file
   lines <- readLines(input_rmd, encoding = "UTF-8", warn = FALSE)
 
-  # Auto-detect data folder if requested
+  # Auto-detect data folder if requested - do this EARLY so all path fixing uses resolved folder
+  original_data_folder_param <- data_folder
   if (fix_paths && data_folder == "auto") {
-    detected_folder <- auto_detect_data_folder(lines, input_rmd)
-    data_folder <- detected_folder
-    if (!quiet && detected_folder == "..") {
+    data_folder <- auto_detect_data_folder(lines, input_rmd)
+    if (!quiet && data_folder == "..") {
       message("Auto-detected: data files are in parent directory")
     }
   }
@@ -176,21 +176,23 @@ fix_rmd <- function(input_rmd,
         output_lines <- c(output_lines, line)
         i <- i + 1
 
-        # Copy chunk body with path fixes
+        # Copy chunk body with path fixes (use multiline processing)
+        chunk_lines <- character()
         while (i <= length(lines) && !grepl("^\\s*```+\\s*$", lines[i])) {
-          l_original <- lines[i]
-          l <- l_original
-          if (fix_paths) {
-            l <- fix_paths_in_line(l, data_folder)
-            # Add transparency comment if line was modified
-            if (l != l_original && !grepl("^\\s*#", l_original)) {
-              output_lines <- c(output_lines, paste0(
-                "# [fixrmdsubmissions] Path fixed to use here::here() for portability"
-              ))
-            }
-          }
-          output_lines <- c(output_lines, l)
+          chunk_lines <- c(chunk_lines, lines[i])
           i <- i + 1
+        }
+
+        # Fix paths across the entire chunk body
+        if (fix_paths && length(chunk_lines) > 0) {
+          chunk_raw <- paste(chunk_lines, collapse = "\n")
+          chunk_fixed <- fix_paths_multiline(chunk_raw, data_folder)
+          chunk_lines <- strsplit(chunk_fixed, "\n", fixed = TRUE)[[1]]
+        }
+
+        # Output the chunk with added transparency comments
+        for (chunk_line in chunk_lines) {
+          output_lines <- c(output_lines, chunk_line)
         }
 
         # Copy closing fence
@@ -210,6 +212,12 @@ fix_rmd <- function(input_rmd,
       # Extract code body (everything except first and last line)
       code_body <- current_chunk[-c(1, length(current_chunk))]
       code_raw <- paste(code_body, collapse = "\n")
+
+      # Fix paths BEFORE evaluation so data imports work correctly
+      if (fix_paths) {
+        code_raw <- fix_paths_multiline(code_raw, data_folder)
+      }
+
       code_clean <- trimws(code_raw)
 
       failed <- FALSE
@@ -270,17 +278,9 @@ fix_rmd <- function(input_rmd,
         }
       }
 
-      # Fix paths in code body if requested
-      original_code_body <- code_body
-      if (fix_paths) {
-        code_body <- vapply(
-          code_body,
-          fix_paths_in_line,
-          character(1),
-          data_folder = data_folder,
-          USE.NAMES = FALSE
-        )
-      }
+      # Split the (already path-fixed) code back into lines for output
+      # code_raw was already fixed above before evaluation
+      code_body_fixed <- strsplit(code_raw, "\n", fixed = TRUE)[[1]]
 
       # Add transparency comments
       chunk_output <- current_chunk[1]
@@ -293,20 +293,8 @@ fix_rmd <- function(input_rmd,
         ))
       }
 
-      # Add transparency comments for path fixes
-      if (fix_paths) {
-        for (j in seq_along(code_body)) {
-          if (code_body[j] != original_code_body[j] &&
-              !grepl("^\\s*#", original_code_body[j])) {
-            chunk_output <- c(chunk_output, paste0(
-              "# [fixrmdsubmissions] Path fixed to use here::here() for portability"
-            ))
-          }
-          chunk_output <- c(chunk_output, code_body[j])
-        }
-      } else {
-        chunk_output <- c(chunk_output, code_body)
-      }
+      # Add the (potentially path-fixed) code body
+      chunk_output <- c(chunk_output, code_body_fixed)
 
       # Write chunk to output
       output_lines <- c(output_lines, chunk_output, line)
@@ -340,7 +328,12 @@ fix_rmd <- function(input_rmd,
     cat("   Output -> ", output_rmd, "\n")
     cat("   ", n_failed, " chunk(s) disabled with eval = FALSE\n", sep = "")
     if (fix_paths) {
-      cat("   Bare file paths converted to here::here(\"", data_folder, "\", ...)\n", sep = "")
+      folder_display <- if (original_data_folder_param == "auto") {
+        paste0(data_folder, " (auto-detected)")
+      } else {
+        data_folder
+      }
+      cat("   Bare file paths converted to here::here(\"", folder_display, "\", ...)\n", sep = "")
     }
     if (limit_output) {
       cat("   Global setup code injected for output management\n")
