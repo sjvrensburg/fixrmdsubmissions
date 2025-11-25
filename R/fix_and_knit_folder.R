@@ -20,15 +20,17 @@
 #' @param fix_paths Logical. Convert bare file paths to `here::here()` format
 #'   (default TRUE). Requires `here` package if TRUE.
 #' @param data_folder Character string. Subfolder name for data files when fixing
-#'   paths. Default is "data". Use "." if data files are at project root.
+#'   paths. Default is "auto" which auto-detects if data files are in parent
+#'   directory or current directory. Use "." if data files are at project root,
+#'   ".." if in parent directory, or "data" for a data subdirectory.
 #' @param add_student_info Logical. Add parent folder name as numbered heading
-#'   (default FALSE). Useful when students forget to include their names.
+#'   (default TRUE). Useful when students forget to include their names.
 #' @param limit_output Logical. Inject global setup code to limit console output
 #'   (default TRUE). Prevents massive data dumps from making documents unreadable.
 #' @param output_dir Character string or NULL. Directory where final knitted output
-#'   files should be saved. If NULL (default), output files are saved in the same
-#'   directory as the source .Rmd file. Use this to collect all outputs in one
-#'   location for easier grading.
+#'   files should be saved. Default is "fixed". If NULL, output files are saved in
+#'   the same directory as the source .Rmd file. Use this to collect all outputs in
+#'   one location for easier grading.
 #' @param knit_quiet Logical. If TRUE, suppresses individual file progress messages
 #'   from rmarkdown::render(). Summary is still printed. Default is FALSE.
 #' @param clean Logical. If TRUE (default), intermediate files generated during
@@ -97,10 +99,10 @@ fix_and_knit_folder <- function(path = ".",
                                 pattern = "\\.Rmd$",
                                 recursive = TRUE,
                                 fix_paths = TRUE,
-                                data_folder = "data",
-                                add_student_info = FALSE,
+                                data_folder = "auto",
+                                add_student_info = TRUE,
                                 limit_output = TRUE,
-                                output_dir = NULL,
+                                output_dir = "fixed",
                                 knit_quiet = FALSE,
                                 clean = TRUE,
                                 quiet = FALSE) {
@@ -108,6 +110,14 @@ fix_and_knit_folder <- function(path = ".",
   # Validate path exists
   if (!dir.exists(path)) {
     stop("Directory does not exist: ", path, call. = FALSE)
+  }
+
+  # Create output directory if specified and doesn't exist
+  if (!is.null(output_dir) && !dir.exists(output_dir)) {
+    if (!quiet) {
+      message("Creating output directory: ", output_dir)
+    }
+    dir.create(output_dir, recursive = TRUE)
   }
 
   # Phase 1: Fix all files

@@ -9,10 +9,10 @@ fix_and_knit_folder(
   pattern = "\\\\.Rmd$",
   recursive = TRUE,
   fix_paths = TRUE,
-  data_folder = "data",
-  add_student_info = FALSE,
+  data_folder = "auto",
+  add_student_info = TRUE,
   limit_output = TRUE,
-  output_dir = NULL,
+  output_dir = "fixed",
   knit_quiet = FALSE,
   clean = TRUE,
   quiet = FALSE
@@ -31,18 +31,20 @@ Default is current directory (".").}
 (default TRUE). Requires \code{here} package if TRUE.}
 
 \item{data_folder}{Character string. Subfolder name for data files when fixing
-paths. Default is "data". Use "." if data files are at project root.}
+paths. Default is "auto" which auto-detects if data files are in parent
+directory or current directory. Use "." if data files are at project root,
+".." if in parent directory, or "data" for a data subdirectory.}
 
 \item{add_student_info}{Logical. Add parent folder name as numbered heading
-(default FALSE). Useful when students forget to include their names.}
+(default TRUE). Useful when students forget to include their names.}
 
 \item{limit_output}{Logical. Inject global setup code to limit console output
 (default TRUE). Prevents massive data dumps from making documents unreadable.}
 
 \item{output_dir}{Character string or NULL. Directory where final knitted output
-files should be saved. If NULL (default), output files are saved in the same
-directory as the source .Rmd file. Use this to collect all outputs in one
-location for easier grading.}
+files should be saved. Default is "fixed". If NULL, output files are saved in
+the same directory as the source .Rmd file. Use this to collect all outputs in
+one location for easier grading.}
 
 \item{knit_quiet}{Logical. If TRUE, suppresses individual file progress messages
 from rmarkdown::render(). Summary is still printed. Default is FALSE.}

@@ -62,7 +62,7 @@ fix_rmd <- function(input_rmd,
                     output_rmd = NULL,
                     backup = TRUE,
                     fix_paths = TRUE,
-                    data_folder = "data",
+                    data_folder = "auto",
                     add_student_info = FALSE,
                     limit_output = TRUE,
                     max_print_lines = 100,  # deprecated parameter kept for compatibility
@@ -95,16 +95,30 @@ fix_rmd <- function(input_rmd,
   # Read input file
   lines <- readLines(input_rmd, encoding = "UTF-8", warn = FALSE)
 
-  # Auto-detect data folder if requested - do this EARLY so all path fixing uses resolved folder
-  original_data_folder_param <- data_folder
-  if (fix_paths && data_folder == "auto") {
-    data_folder <- auto_detect_data_folder(lines, input_rmd)
-    if (!quiet) {
-      if (data_folder == "..") {
-        message("Auto-detected: data files are in parent directory")
-      } else {
-        message("Auto-detected: data files are in current directory (using '.')")
-      }
+  # Build path map for file replacement if requested
+  path_map <- NULL
+  if (fix_paths) {
+    rmd_dir <- dirname(normalizePath(input_rmd, mustWork = TRUE))
+
+    # Determine which directories to search based on data_folder parameter
+    if (data_folder == "auto") {
+      # Search both parent and current directory
+      search_dirs <- c(dirname(rmd_dir), rmd_dir)
+    } else if (data_folder == "..") {
+      search_dirs <- dirname(rmd_dir)
+    } else if (data_folder == ".") {
+      search_dirs <- rmd_dir
+    } else {
+      # Specific folder relative to Rmd directory
+      search_dirs <- file.path(rmd_dir, data_folder)
+    }
+
+    # Build the filename -> absolute path mapping
+    path_map <- build_path_map(input_rmd, search_dirs)
+
+    if (!quiet && length(path_map) > 0) {
+      message("Found ", length(path_map), " data file(s) to map: ",
+              paste(names(path_map), collapse = ", "))
     }
   }
 
@@ -188,9 +202,9 @@ fix_rmd <- function(input_rmd,
         }
 
         # Fix paths across the entire chunk body
-        if (fix_paths && length(chunk_lines) > 0) {
+        if (fix_paths && !is.null(path_map) && length(chunk_lines) > 0) {
           chunk_raw <- paste(chunk_lines, collapse = "\n")
-          chunk_fixed <- fix_paths_multiline(chunk_raw, data_folder)
+          chunk_fixed <- replace_paths_with_map(chunk_raw, path_map)
           chunk_lines <- strsplit(chunk_fixed, "\n", fixed = TRUE)[[1]]
         }
 
@@ -218,8 +232,8 @@ fix_rmd <- function(input_rmd,
       code_raw <- paste(code_body, collapse = "\n")
 
       # Fix paths BEFORE evaluation so data imports work correctly
-      if (fix_paths) {
-        code_raw <- fix_paths_multiline(code_raw, data_folder)
+      if (fix_paths && !is.null(path_map)) {
+        code_raw <- replace_paths_with_map(code_raw, path_map)
       }
 
       code_clean <- trimws(code_raw)
@@ -341,13 +355,8 @@ fix_rmd <- function(input_rmd,
     cat("\nFinished!\n")
     cat("   Output -> ", output_rmd, "\n")
     cat("   ", n_failed, " chunk(s) disabled with eval = FALSE\n", sep = "")
-    if (fix_paths) {
-      folder_display <- if (original_data_folder_param == "auto") {
-        paste0(data_folder, " (auto-detected)")
-      } else {
-        data_folder
-      }
-      cat("   Bare file paths converted to here::here(\"", folder_display, "\", ...)\n", sep = "")
+    if (fix_paths && !is.null(path_map) && length(path_map) > 0) {
+      cat("   ", length(path_map), " file path(s) replaced with absolute paths\n", sep = "")
     }
     if (limit_output) {
       cat("   Global setup code injected for output management\n")

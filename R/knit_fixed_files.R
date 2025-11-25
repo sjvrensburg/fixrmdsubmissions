@@ -131,16 +131,15 @@ knit_fixed_files <- function(path = ".",
 
     # Determine output file location
     output_file <- NULL
+    render_output_dir <- NULL
     if (!is.null(output_dir)) {
       # Extract base name without _FIXED.Rmd
       base_name <- sub("_FIXED\\.Rmd$", "", basename(file_path), ignore.case = TRUE)
       # Get parent folder name for disambiguation
       parent_folder <- basename(dirname(file_path))
-      # Create unique output name
-      output_file <- file.path(
-        output_dir,
-        paste0(parent_folder, "_", base_name)
-      )
+      # Create unique output name (just the filename, not full path)
+      output_file <- paste0(parent_folder, "_", base_name)
+      render_output_dir <- output_dir
     }
 
     # Try to knit the file
@@ -150,6 +149,7 @@ knit_fixed_files <- function(path = ".",
         output_path <- rmarkdown::render(
           input = file_path,
           output_file = output_file,
+          output_dir = render_output_dir,
           quiet = quiet,
           clean = clean,
           envir = new.env()  # Fresh environment for each file

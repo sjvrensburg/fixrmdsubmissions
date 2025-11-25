@@ -1,14 +1,14 @@
 Package: fixrmdsubmissions
 Title: Automatically Fix Common Issues in Student R Markdown Submissions
-Version: 0.3.0
+Version: 0.4.0
 Authors@R:
     person("Stéfan", "Janse van Rensburg", , "stefanj@mandala.ac.za", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-0749-2277"))
 Description: Automatically repairs common technical issues in student R Markdown
     submissions so they can be knit reliably. Sequentially evaluates code chunks,
-    adds 'eval = FALSE' to failing chunks, and intelligently fixes bare file paths
-    to use the 'here' package. Designed for instructors who need to process hundreds
-    of submissions with minimal manual intervention.
+    adds 'eval = FALSE' to failing chunks, and replaces file paths with absolute
+    paths using intelligent filename-to-path mapping. Designed for instructors who
+    need to process hundreds of submissions with minimal manual intervention.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

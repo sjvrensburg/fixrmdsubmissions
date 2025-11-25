@@ -18,7 +18,7 @@ The package exports four main user functions and one internal utility:
 Processes one .Rmd file by:
 1. Sequentially evaluating all code chunks in a shared environment
 2. Adding `eval = FALSE` only to chunks that fail execution
-3. Converting bare file paths to `here::here()` format (optional)
+3. Replacing bare file paths with absolute paths using filename-to-path mapping (optional)
 4. Adding student folder name as heading (optional, useful when students forget their names)
 5. Injecting global output-limiting code to prevent massive data dumps
 6. Creating backups before any modifications
@@ -28,9 +28,9 @@ Key parameters:
 - `input_rmd`: Path to the .Rmd file to fix
 - `output_rmd`: Output path (defaults to `*_FIXED.Rmd` in same directory)
 - `backup`: Create `.bak` backup file (default TRUE)
-- `fix_paths`: Wrap bare filenames with `here::here()` (default TRUE, requires `here` package)
-- `data_folder`: Subfolder name for data files when fixing paths (default "data")
-- `add_student_info`: Add parent folder name as numbered heading (default FALSE)
+- `fix_paths`: Replace bare filenames with absolute paths (default TRUE)
+- `data_folder`: Which directories to search for data files (default "auto" = both parent and current directory)
+- `add_student_info`: Add parent folder name as numbered heading (default TRUE)
 - `limit_output`: Inject global setup code to limit console output (default TRUE)
 - `quiet`: Suppress progress messages (default FALSE)
 
@@ -70,31 +70,36 @@ Runs a realistic demo showing all package features: path fixing, chunk evaluatio
 ## Technical Architecture
 
 ### Path Fixing Strategy (`R/utils-paths.R`)
-**Function**: `fix_paths_in_line()` (internal helper, not exported)
+**Functions**: `build_path_map()`, `replace_paths_with_map()` (internal helpers, not exported)
 
-Uses regex to intelligently identify and wrap bare file paths in common data import functions with `here::here()`:
+Uses a simple filename-to-absolute-path mapping approach for maximum reliability:
 
-**Recognized import functions:**
-- readr: `read_csv()`, `read_tsv()`, `read_delim()`, `read_table()`, `read_fwf()`
-- base R: `read.csv()`, `read.csv2()`, `read.table()`, `read.delim()`, `read.delim2()`, `readRDS()`, `load()`, `source()`
-- readxl: `read_excel()`, `read_xlsx()`, `read_xls()`
-- data.table: `fread()`
-- vroom: `vroom()`
-- qs: `qread()`
+**How it works:**
 
-**Never modifies** (by design):
-- Full-line comments (`^\\s*#`)
-- Lines already using `here::here()`
-- Absolute paths (`/`, `C:/`, `~/`, `../`)
-- URLs (`http://`, `https://`, `ftp://`)
-- Network paths (`\\\\`)
+1. **Build Path Map** (`build_path_map()`):
+   - Scans specified directories for common data files (.csv, .rds, .xlsx, etc.)
+   - Creates a named list mapping filename → absolute path
+   - Example: `list("fraud_transactions.csv" = "/full/path/to/fraud_transactions.csv")`
 
-**Modifies** (wraps with `here::here(data_folder, ...)`):
-- Bare filenames: `"data.csv"` → `here::here("data", "data.csv")`
-- Relative paths: `"data/scores.csv"` → `here::here("data", "scores.csv")`
-- Nested paths: `"raw/2025/file.csv"` → `here::here("raw/2025", "file.csv")`
+2. **Replace Paths** (`replace_paths_with_map()`):
+   - Simple string replacement: any quoted occurrence of a filename gets replaced with its absolute path
+   - `"fraud_transactions.csv"` → `"/full/path/to/fraud_transactions.csv"`
+   - Works with paths too: `"data/fraud_transactions.csv"` → `"/full/path/to/fraud_transactions.csv"`
 
-The `data_folder` parameter controls which subfolder to wrap. Example: with `data_folder = "."`, paths stay relative to project root. With `data_folder = "data"`, all paths become relative to a `data/` subfolder.
+**Advantages of this approach:**
+- **Reliable**: Absolute paths always work, regardless of working directory
+- **Simple**: No complex path resolution or `here::here()` context issues
+- **Transparent**: Easy to see what happened in the fixed file
+- **Flexible**: Works with any directory structure
+
+**The `data_folder` parameter** controls which directories to search:
+- `"auto"` (default): Searches both parent directory and current directory
+- `".."`: Only parent directory
+- `"."`: Only current directory
+- `"data"`: Specific subfolder relative to .Rmd file
+
+**Recognized data file extensions:**
+csv, tsv, txt, rds, RDS, rda, RData, xlsx, xls, json, xml, feather, parquet, sav, dta, sas7bdat, qs
 
 ### Chunk Evaluation Strategy
 Code in `fix_rmd()` (lines 120-190 approximately):
@@ -188,7 +193,7 @@ fixrmdsubmissions/
 
 2. **Transparency Comments**: All automatic modifications include comments explaining what was changed and why. This maintains academic integrity—graders can see exactly what the original code was.
 
-3. **Conservative Path Fixing**: Better to miss a path that should be fixed than to incorrectly modify something that shouldn't be. Absolute paths, URLs, and existing `here::here()` calls are never touched.
+3. **Simple Path Fixing**: Uses filename-to-absolute-path mapping with simple string replacement. Scans specified directories for data files, creates a mapping, and replaces any quoted occurrence of those filenames with their absolute paths. This approach is reliable and transparent.
 
 4. **Global Output Limiting**: Instead of trying to limit output per-chunk, a single global setup chunk (with pander, print, and max.print overrides) handles all output limiting. This is more reliable than chunk-specific options.
 
@@ -200,7 +205,7 @@ fixrmdsubmissions/
 ## Dependencies
 
 **Imports** (required):
-- `here` ≥ 1.0.0 — Package root detection and portable paths
+- `here` ≥ 1.0.0 — Legacy dependency (may be removed in future version; currently unused)
 - `pander` — Table formatting options when limiting output
 - `rmarkdown` — Chunk parsing and knitting
 
@@ -232,4 +237,4 @@ When testing with real submissions, use `real_examples/` locally. Use only `inst
 
 5. **Testing Real Student Files**: Use `real_examples/` directory during development. These files demonstrate the real issues the package solves (broken paths, cascading errors, massive output).
 
-6. **The `.here` File**: Students/users should create a `.here` file in their project root. This tells the `here` package where the project root is. Without it, `here::here()` might find the wrong directory (e.g., git repo root instead of submissions folder).
+6. **Path Discovery**: The package automatically scans parent and current directories (with `data_folder = "auto"`) to find data files. This works reliably without requiring any special project setup or `.here` files.
